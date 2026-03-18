@@ -1584,17 +1584,20 @@ function renderComm(){
   }
   list.innerHTML = COMM.map((c,idx)=>{
     const text = (c[{n:'n',h:'h',a:'a',m:'m'}[flavor]] || c.n || '').replace(/[^\x20-\x7E\u00A0-\uFFFF]/g,''); // strip invalid chars
-    const momentum = getBattingMomentum(COMM, idx);
+    // Fan mood — only apply on meaningful events, not every ball
+    // This prevents the entire commentary from being tinted
+    let moodClass = '';
+    const isKeyEvent = c.res==='wicket' || c.res==='six' || c.res==='four';
+    if(isKeyEvent && (flavor==='h' || flavor==='a')){
+      const momentum = getBattingMomentum(COMM, idx);
+      if(flavor==='h') moodClass = momentum==='winning'?'fan-up':momentum==='losing'?'fan-down':'';
+      if(flavor==='a') moodClass = momentum==='losing'?'fan-up':momentum==='winning'?'fan-down':'';
+    }
 
     // GIF placeholder — rendered async after
     const gifId = `gif-${flavor}-${idx}`;
     const gifTrigger = getGifTrigger(c, idx, flavor);
     const gifSlot = gifTrigger ? `<div id="${gifId}" class="comm-gif-slot"></div>` : '';
-
-    // Fan mood class for h/a flavors
-    let moodClass = '';
-    if(flavor==='h') moodClass = momentum==='winning'?'fan-up':momentum==='losing'?'fan-down':'';
-    if(flavor==='a') moodClass = momentum==='losing'?'fan-up':momentum==='winning'?'fan-down':''; // away = opposite
 
     // Result badge label
     const resLabel = c.res==='six'?'6':c.res==='four'?'4':c.res==='wicket'?'WKT':
@@ -1732,7 +1735,9 @@ function drawMomentum(cv,inn,prog,hitKey){
   ctx.save();ctx.strokeStyle=T.ref;ctx.lineWidth=1;ctx.setLineDash([6,4]);
   ctx.beginPath();ctx.moveTo(PD.l,yOf(refV,yMin,ySpan));ctx.lineTo(PD.l+CW,yOf(refV,yMin,ySpan));ctx.stroke();ctx.restore();
   const limit=Math.round(inn.data.length*Math.min(prog,1));
-  const pts=[{o:0,val:inn.wp0,type:'normal',wkt:[],msd:null,lmk:null},...inn.data.slice(0,limit).map(d=>({o:d.o,val:isWP?d.wp:d.r,type:d.type,wkt:d.wkt,msd:d.msd,lmk:d.lmk}))];
+  // Starting point: wp0 for win-prob mode, 0 for run-rate mode (wp0=50 would be off the run-rate chart)
+  const startVal = isWP ? inn.wp0 : 0;
+  const pts=[{o:0,val:startVal,type:'normal',wkt:[],msd:null,lmk:null},...inn.data.slice(0,limit).map(d=>({o:d.o,val:isWP?d.wp:d.r,type:d.type,wkt:d.wkt,msd:d.msd,lmk:d.lmk}))];
   if(!isWP&&isSA&&prog>.15){
     ctx.save();ctx.strokeStyle=T.rrr;ctx.lineWidth=1.5;ctx.setLineDash([4,3]);ctx.globalAlpha=.8;
     ctx.beginPath();SA_RRR.forEach((v,i)=>{if(i===0)ctx.moveTo(xOf(0),yOf(v,yMin,ySpan));else if(i<=limit)ctx.lineTo(xOf(i),yOf(v,yMin,ySpan));});
@@ -2108,8 +2113,7 @@ loadMatch(_matchId).then(async data => {
 
 // ── LIVE POLLING ─────────────────────────────────────────────────────────────
 // ── MOMENTUM REFRESH STATE ────────────────────────────────────────────────────
-// Tracks last seen state. Momentum only redraws on:
-// 1. New over completed  2. Wicket fell  3. Landmark reached
+// Only redraws on: new over completed | wicket | landmark
 let _lastMomSnapshot = { overs:0, wickets:0, landmarks:0 };
 
 function getMomentumSnapshot(inn1, inn2){
@@ -2130,43 +2134,30 @@ function shouldRefreshMomentum(snap){
 }
 
 function startLivePoll(id) {
-  // ── FAST POLL: 30s — commentary, scorecard, hero ──────────────────────────
-  // Commentary is the source of truth. 30s is plenty — cricket moves slowly.
   setInterval(async () => {
     try {
+      // 1. Refresh match meta
       const fresh = await loadMatch(id);
       if(!fresh) return;
       CURRENT_MATCH = fresh;
       populateHero();
+      // 2. Refresh all feature data
       await initMatchData(id);
+      // 3. Re-render commentary, scorecard, impact, news
       buildScorecard(_activeInn);
       buildImpact();
       renderComm();
       buildNews();
+      // 4. Momentum — only redraw when an over completes, wicket falls, or landmark
+      if(NZ_INN.data && NZ_INN.data.length > 0){
+        const snap = getMomentumSnapshot(NZ_INN, SA_INN);
+        if(shouldRefreshMomentum(snap)){
+          animProg = 0;
+          runAnim(); // full animation on meaningful change
+        }
+      }
     } catch(e) { /* silent fail */ }
-  }, 30000); // 30s — commentary/scorecard refresh
-
-  // ── SLOW POLL: 2min — momentum graph ──────────────────────────────────────
-  // Momentum only makes sense to redraw after an over ends, a wicket falls,
-  // or a landmark is reached. Checking every 2min is more than enough.
-  setInterval(async () => {
-    try {
-      if(!NZ_INN.data || !NZ_INN.data.length) return;
-      // Re-read fresh momentum from localStorage
-      const stored = localStorage.getItem(`cricai_match_${id}_momentum`);
-      if(!stored) return;
-      const mom = JSON.parse(stored);
-      const snap = getMomentumSnapshot(mom.inn1, mom.inn2);
-      if(!shouldRefreshMomentum(snap)) return; // nothing changed — skip redraw
-      // Something changed — update state and animate
-      NZ_INN = mom.inn1 || NZ_INN;
-      SA_INN = mom.inn2 || SA_INN;
-      NZ_WF  = mom.wf1  || NZ_WF;
-      SA_WF  = mom.wf2  || SA_WF;
-      animProg = 0;
-      runAnim(); // full animation — feels like a live graph update
-    } catch(e) { /* silent fail */ }
-  }, 120000); // 2 minutes — momentum only redraws when meaningful event happened
+  }, 30000); // 30s poll — momentum only animates when something changed
 }
 
 // Populate score hero from match data
