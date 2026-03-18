@@ -162,26 +162,31 @@ table.ct tr:hover td{background:rgba(255,255,255,.02)}
 .flv.on-a{background:var(--amber);color:#000}
 .flv.on-m{background:var(--red);color:#fff}
 .comm-list{display:flex;flex-direction:column;gap:10px}
-.ccard{background:var(--bg2);border:1px solid var(--b1);border-left:3px solid var(--bg3);border-radius:var(--r);padding:14px 18px}
+.ccard{background:var(--bg2);border:1px solid var(--b1);border-left:3px solid var(--bg3);border-radius:var(--r);padding:14px 18px;transition:border-color .2s}
 .ccard.six{border-left-color:var(--cyan)}
 .ccard.four{border-left-color:var(--lime)}
-.ccard.wicket{border-left-color:var(--red)}
+.ccard.wicket{border-left-color:var(--red);background:rgba(255,59,92,.04)}
+.ccard.noball{border-left-color:var(--amber)}
 .ccard.dot{border-left-color:var(--bg4)}
+.ccard.fan-up{background:rgba(198,241,53,.03);border-color:rgba(198,241,53,.2)}
+.ccard.fan-down{background:rgba(255,59,92,.05);border-color:rgba(255,59,92,.2)}
 .chdr{display:flex;align-items:center;gap:8px;margin-bottom:9px;flex-wrap:wrap}
 .over-bdg{font-family:var(--fm);font-size:10px;background:var(--bg4);color:var(--t2);padding:2px 8px;border-radius:4px;flex-shrink:0;font-weight:600}
 .bres{font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;flex-shrink:0;letter-spacing:.5px}
 .bres.six{background:rgba(0,229,200,.15);color:var(--cyan)}
 .bres.four{background:rgba(198,241,53,.15);color:var(--lime)}
 .bres.wicket{background:rgba(255,59,92,.15);color:var(--red)}
+.bres.noball{background:rgba(255,184,48,.15);color:var(--amber)}
+.bres.wide{background:rgba(255,184,48,.1);color:var(--amber)}
 .bres.dot{background:var(--bg4);color:var(--t3)}
-.bres.run{background:rgba(255,255,255,.08);color:var(--t2)}
+.bres.run,.bres.single,.bres.two,.bres.three{background:rgba(255,255,255,.08);color:var(--t2)}
 .cplayers{font-size:10px;color:var(--t2);margin-left:auto;font-weight:500}
-.ctxt{font-size:13px;line-height:1.7;color:var(--t1);margin-bottom:2px}
-.react-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}
-.rbtn{background:var(--bg3);border:1px solid var(--b1);border-radius:20px;padding:3px 10px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:3px;transition:all .15s;color:var(--t2);font-family:var(--fb)}
-.rbtn:hover{background:var(--bg4);border-color:var(--b2)}
-.rbtn.on{background:rgba(198,241,53,.1);border-color:rgba(198,241,53,.35);color:var(--lime)}
-.rcnt{font-family:var(--fm);font-size:10px}
+.freehit-badge{font-size:8px;font-weight:800;letter-spacing:1px;padding:2px 7px;border-radius:3px;background:rgba(255,184,48,.2);color:var(--amber);border:1px solid rgba(255,184,48,.4);animation:pulse .8s infinite}
+.wicket-badge{font-size:8px;font-weight:800;letter-spacing:1px;padding:2px 7px;border-radius:3px;background:rgba(255,59,92,.15);color:var(--red)}
+.ctxt{font-size:13px;line-height:1.8;color:var(--t1);margin-bottom:4px}
+.meme-text{font-size:13px;line-height:1.8;color:var(--t2);font-style:normal;border-left:2px solid rgba(255,59,92,.3);padding-left:10px;margin-left:2px}
+.comm-gif-slot{margin-top:10px}
+.comm-gif{width:100%;max-width:320px;height:auto;border-radius:8px;display:block;opacity:.9}
 
 /* ── Impact ── */
 .imp-page{display:flex;flex-direction:column;gap:22px}
@@ -820,7 +825,11 @@ table.ct tr:hover td{background:#fafafa}
       <button class="crtab" >News</button>
     </nav>
     <div class="cricnav-r">
-      <button class="cricnav-btn" onclick="document.getElementById('cric-settings').classList.add('open')" title="Settings">&#9881;</button>
+      <button class="cricnav-btn" onclick="
+        const s=document.getElementById('cric-settings');
+        document.getElementById('api-key-inp').value=CFG.key||'';
+        const gi=document.getElementById('giphy-inp');if(gi)gi.value=CFG.giphyKey||'';
+        s.classList.add('open')" title="Settings">&#9881;</button>
     </div>
   </div>
 </header>
@@ -831,6 +840,10 @@ table.ct tr:hover td{background:#fafafa}
     <div class="cric-sfield">
       <label>Claude API Key</label>
       <input id="api-key-inp" type="password" placeholder="sk-ant-api03-…"/>
+    </div>
+    <div class="cric-sfield">
+      <label>GIPHY API Key <span style="font-size:9px;color:#888;font-weight:400">(for GIFs on wickets/free hits)</span></label>
+      <input id="giphy-inp" type="text" placeholder="Get free key at developers.giphy.com"/>
     </div>
     <div class="cric-sfield">
       <label>Cricbuzz API Key</label>
@@ -1234,19 +1247,23 @@ table.ct tr:hover td{background:#fafafa}
 <script>
 'use strict';
 const CFG = {
-  key: localStorage.getItem('cric_claude_key') || '',
-  model: 'claude-haiku-4-5-20251001',
-  api: 'https://api.anthropic.com/v1/messages'
+  key:      localStorage.getItem('cric_claude_key') || '',
+  giphyKey: localStorage.getItem('cric_giphy_key') || '',
+  model:    'claude-haiku-4-5-20251001',
+  api:      'https://api.anthropic.com/v1/messages'
 };
-function saveSettings() {
-  CFG.key = document.getElementById('api-key-inp').value;
+function saveSettings(){
+  CFG.key      = document.getElementById('api-key-inp').value;
+  CFG.giphyKey = (document.getElementById('giphy-inp')||{}).value || '';
   localStorage.setItem('cric_claude_key', CFG.key);
+  localStorage.setItem('cric_giphy_key',  CFG.giphyKey);
+  // Push GIPHY key into renderComm so GIFs activate immediately
+  if(typeof GIPHY_KEY !== 'undefined') GIPHY_KEY = CFG.giphyKey;
   const m = document.getElementById('smsg');
-  m.style.display = 'inline';
-  setTimeout(() => m.style.display = 'none', 2000);
+  m.style.display='inline';
+  setTimeout(()=>m.style.display='none',2000);
   document.getElementById('cric-settings').classList.remove('open');
 }
-function saveSettings(){CFG.key=document.getElementById('api-key-inp').value;localStorage.setItem('cric_claude_key',CFG.key);const m=document.getElementById('smsg');m.style.display='inline';setTimeout(()=>m.style.display='none',2000);document.getElementById('cric-settings').classList.remove('open');}
 
 // ── TOP NAV ──
 const _cricnavTabs = document.getElementById('cricnav-tabs');
@@ -1477,16 +1494,136 @@ if(_innSw) _innSw.addEventListener('click',e=>{const b=e.target.closest('.inn-bt
 
 let flavor='n';
 let rcounts=[], reacted=[];
-function initReactions(){ rcounts=COMM.map(()=>({'🔥':20+~~(Math.random()*80),'😂':10+~~(Math.random()*60),'💔':~~(Math.random()*30),'🫡':5+~~(Math.random()*40),'🤯':8+~~(Math.random()*55)})); reacted=COMM.map(()=>({})); }
+function initReactions(){ rcounts=COMM.map(()=>({})); reacted=COMM.map(()=>({})); }
 window.setFlavor=function(f,btn){flavor=f;document.querySelectorAll('.flv').forEach(b=>b.className='flv');btn.classList.add('on-'+f);renderComm();};
-function renderComm(){
-  const isMeme=flavor==='m';
-  document.getElementById('comm-list').innerHTML=COMM.map((c,idx)=>{
-    const text=c[{n:'n',h:'h',a:'a',m:'m'}[flavor]];
-    return `<div class="ccard ${c.res}"><div class="chdr"><span class="over-bdg">${c.ov}</span><span class="bres ${c.res}">${c.res==='six'?'6':c.res==='four'?'4':c.res==='wicket'?'WKT':c.res==='dot'?'DOT':c.runs}</span><span class="cplayers">${c.btr} vs ${c.bwl}</span></div><div class="ctxt">${text}</div>${isMeme?`<div class="react-row">${Object.entries(rcounts[idx]).map(([e,cnt])=>`<button class="rbtn ${reacted[idx][e]?'on':''}" onclick="doReact(${idx},'${e}',this)"><span>${e}</span><span class="rcnt">${cnt}</span></button>`).join('')}</div>`:''}</div>`;
-  }).join('');
+
+// ── GIF SUPPORT ───────────────────────────────────────────────────────────────
+// GIPHY_KEY is read from CFG which loads from localStorage on init
+let GIPHY_KEY = localStorage.getItem('cric_giphy_key') || '';
+const GIF_CACHE = {}; // cache by ball index so GIFs don't re-fetch on flavor switch
+
+// Determine if a ball deserves a GIF and what query to use
+function getGifTrigger(ball, idx, flavor){
+  const isWicket    = ball.res==='wicket';
+  const isFreeHit   = ball.isFreeHit || false;
+  const isGreatCatch= ball.isGreatCatch || (isWicket && (ball.dismissal||'').toLowerCase().includes('caught'));
+  const isNoball    = ball.res==='noball';
+  // Periodic meme GIF: every 10th ball — keeps it alive without overwhelming
+  const isPeriodic  = flavor==='m' && idx>0 && idx%10===0 && !isWicket && !isFreeHit;
+
+  if(!isWicket && !isFreeHit && !isNoball && !isPeriodic) return null;
+
+  if(flavor==='h'){
+    if(isWicket)           return 'cricket shocked fan despair heartbreak';
+    if(isFreeHit)          return 'cricket free hit celebration fans excited';
+    if(isNoball&&!isFreeHit) return 'cricket no ball relief excited';
+  }
+  if(flavor==='a'){
+    if(isGreatCatch)       return 'incredible diving catch celebration cricket';
+    if(isWicket)           return 'cricket bowler wicket celebration jumping';
+    if(isFreeHit||isNoball)return 'cricket no ball frustration disaster';
+  }
+  if(flavor==='m'){
+    if(isGreatCatch)       return 'amazing catch reaction disbelief funny';
+    if(isWicket)           return 'cricket out funny reaction shocked';
+    if(isFreeHit)          return 'free hit cricket funny meme';
+    if(isNoball)           return 'no ball cricket fail funny';
+    if(isPeriodic)         return 'cricket funny moment crowd reaction';
+  }
+  if(flavor==='n'){
+    if(isGreatCatch)       return 'incredible athletic catch sports';
+    if(isWicket)           return 'cricket wicket stumps flying';
+    if(isFreeHit)          return 'cricket free hit batsman power hit';
+  }
+  return null;
 }
-window.doReact=function(idx,e,btn){if(reacted[idx][e]){rcounts[idx][e]--;reacted[idx][e]=false;btn.classList.remove('on');}else{rcounts[idx][e]++;reacted[idx][e]=true;btn.classList.add('on');}btn.querySelector('.rcnt').textContent=rcounts[idx][e];};
+
+async function fetchGif(query){
+  if(!GIPHY_KEY) return null;
+  try{
+    const url = `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_KEY}&q=${encodeURIComponent(query)}&limit=10&rating=g`;
+    const res = await fetch(url);
+    const d = await res.json();
+    const items = d.data||[];
+    if(!items.length) return null;
+    // Pick random from top 10 so it's not always the same GIF
+    const pick = items[Math.floor(Math.random()*items.length)];
+    return pick?.images?.fixed_height?.url || pick?.images?.downsized?.url || null;
+  }catch{ return null; }
+}
+
+// ── MATCH MOMENTUM STATE ─────────────────────────────────────────────────────
+// Reads last N balls to detect if batting team is on upswing or downslide
+// Returns 'winning' | 'losing' | 'neutral' from batting team POV
+function getBattingMomentum(balls, currentIdx){
+  const last6 = balls.slice(Math.max(0, currentIdx-6), currentIdx+1);
+  if(!last6.length) return 'neutral';
+  const wickets = last6.filter(b=>b.res==='wicket').length;
+  const runs = last6.reduce((s,b)=>(s + (b.batRuns||b.runs||0)),0);
+  const dots = last6.filter(b=>b.res==='dot').length;
+  if(wickets>=2) return 'losing';
+  if(dots>=4)    return 'losing';
+  if(runs>=18)   return 'winning'; // 3+ rpo above par in last over
+  if(runs>=10)   return 'winning';
+  return 'neutral';
+}
+
+function renderComm(){
+  const list = document.getElementById('comm-list');
+  list.innerHTML = COMM.map((c,idx)=>{
+    const text = c[{n:'n',h:'h',a:'a',m:'m'}[flavor]] || c.n || '';
+    const momentum = getBattingMomentum(COMM, idx);
+
+    // GIF placeholder — rendered async after
+    const gifId = `gif-${flavor}-${idx}`;
+    const gifTrigger = getGifTrigger(c, idx, flavor);
+    const gifSlot = gifTrigger ? `<div id="${gifId}" class="comm-gif-slot"></div>` : '';
+
+    // Fan mood class for h/a flavors
+    let moodClass = '';
+    if(flavor==='h') moodClass = momentum==='winning'?'fan-up':momentum==='losing'?'fan-down':'';
+    if(flavor==='a') moodClass = momentum==='losing'?'fan-up':momentum==='winning'?'fan-down':''; // away = opposite
+
+    // Result badge label
+    const resLabel = c.res==='six'?'6':c.res==='four'?'4':c.res==='wicket'?'WKT':
+                     c.res==='noball'?'NB':c.res==='wide'?'WD':c.res==='bye'?'B':
+                     c.res==='legbye'?'LB':c.res==='dot'?'•':(c.batRuns||c.runs||'?');
+
+    return `<div class="ccard ${c.res} ${moodClass}">
+      <div class="chdr">
+        <span class="over-bdg">${c.ov||''}</span>
+        <span class="bres ${c.res}">${resLabel}</span>
+        <span class="cplayers">${c.btr||''} vs ${c.bwl||''}</span>
+        ${c.res==='noball'?'<span class="freehit-badge">FREE HIT</span>':''}
+        ${c.res==='wicket'?'<span class="wicket-badge">OUT</span>':''}
+      </div>
+      <div class="ctxt ${flavor==='m'?'meme-text':''}">${text}</div>
+      ${gifSlot}
+    </div>`;
+  }).join('');
+
+  // Async: fetch and inject GIFs
+  if(GIPHY_KEY){
+    COMM.forEach((c,idx)=>{
+      const gifTrigger = getGifTrigger(c, idx, flavor);
+      if(!gifTrigger) return;
+      const cacheKey = `${flavor}-${idx}`;
+      const slot = document.getElementById(`gif-${flavor}-${idx}`);
+      if(!slot) return;
+      if(GIF_CACHE[cacheKey]){
+        if(GIF_CACHE[cacheKey]!=='none') slot.innerHTML=`<img src="${GIF_CACHE[cacheKey]}" class="comm-gif" loading="lazy" alt="">`;
+        return;
+      }
+      fetchGif(gifTrigger).then(url=>{
+        GIF_CACHE[cacheKey] = url||'none';
+        if(url && document.getElementById(`gif-${flavor}-${idx}`)){
+          document.getElementById(`gif-${flavor}-${idx}`).innerHTML=`<img src="${url}" class="comm-gif" loading="lazy" alt="">`;
+        }
+      });
+    });
+  }
+}
+window.doReact=function(){}; // kept for compatibility — no-op now
 
 function buildImpact(){
   const RL=['#1','#2','#3'];

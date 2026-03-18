@@ -749,7 +749,7 @@ pre.result-json{font-family:var(--fm);font-size:11px;color:var(--t2);line-height
 let currentId = '122698';
 let parsedComm = [];
 const API_URL = 'https://api.anthropic.com/v1/messages';
-const MODEL   = 'claude-haiku-4-5-20251001';
+const MODEL = 'claude-sonnet-4-5-20251001';
 
 const MATCH_META = {
   '122698':{t1:'New Zealand',t2:'South Africa',s1:'186/6 (20)',s2:'140/4* (16)',need:'SA need 47 off 24',f1:'🇳🇿',f2:'🇿🇦'},
@@ -966,7 +966,9 @@ Each ball object must have exactly these fields:
 - extraRuns: integer extra runs (penalty runs: 1 for wide/nb base, plus any additional runs; 0 if no extra)
 - totalRuns: batRuns + extraRuns (total runs scored off this ball)
 - dismissal: if wicket → full string e.g. "c Rohit b Dube 4(8)", else ""
-- n: (see FLAVOUR GUIDE above)
+- isFreeHit: true if this delivery is a FREE HIT (ball after a no-ball), else false
+- isGreatCatch: true if dismissal involved a spectacular/diving/outstanding catch, else false
+- n: (see FLAVOUR GUIDE above) — MUST be exactly 3 sentences: (1) describe the delivery, (2) batter's reaction/shot, (3) what it means for the match/pressure context.
 - h: (see FLAVOUR GUIDE above)
 - a: (see FLAVOUR GUIDE above)
 - m: (see FLAVOUR GUIDE above)
@@ -978,7 +980,7 @@ ${raw}`;
     const res = await fetch(API_URL, {
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body: JSON.stringify({model:MODEL, max_tokens:4000, messages:[{role:'user',content:prompt}]})
+      body: JSON.stringify({model:MODEL, max_tokens:8000, messages:[{role:'user',content:prompt}]})
     });
     const d = await res.json();
     if(d.error){ toast('API error: '+d.error.message,'err'); return; }
@@ -1181,7 +1183,7 @@ Scorecard: ${JSON.stringify(sc)}
 Return ONLY a JSON array of 2 team objects, each with: team, code, flag(""), score, players (array of top 3 objects with: name, role, imp(0-100), bat(0-100), bowl(0-100), fld(0-100), desc(2 sentences explaining impact)).
 No markdown, no explanation.`;
   try{
-    const res = await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:MODEL,max_tokens:1500,messages:[{role:'user',content:prompt}]})});
+    const res = await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:MODEL,max_tokens:3000,messages:[{role:'user',content:prompt}]})});
     const d = await res.json();
     const text = d.content?.[0]?.text||'[]';
     const clean = text.replace(/```json\n?|```\n?/g,'').trim();
@@ -1309,7 +1311,7 @@ Match: ${info.title||'cricket match'}, ${info.need||''}
 Scorecard summary: ${JSON.stringify(sc[1]?.sum||{})} vs ${JSON.stringify(sc[2]?.sum||{})}
 Return ONLY JSON array: [{tag:"LIVE"|"ANALYSIS"|"VIRAL"|"STATS"|"PREVIEW"|"CHAT", hl:"headline", ic:"emoji", time:"X min ago"}]`;
   try{
-    const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:MODEL,max_tokens:800,messages:[{role:'user',content:prompt}]})});
+    const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:MODEL,max_tokens:1500,messages:[{role:'user',content:prompt}]})});
     const d=await res.json();
     const clean=(d.content?.[0]?.text||'[]').replace(/```json\n?|```\n?/g,'').trim();
     const news=JSON.parse(clean);
