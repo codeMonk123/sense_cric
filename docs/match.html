@@ -1427,21 +1427,21 @@ let NZ_INN={}, SA_INN={}, NZ_WF=[], SA_WF=[], PAR=[], SA_RRR=[], SA_CRR=[];
 // Loads all match-specific data for a given match ID and populates module state
 async function initMatchData(id){
   const [scorecard, impact, commentary, news, momentum] = await Promise.all([
-    loadScorecard(id),
-    loadImpact(id),
-    loadCommentary(id),
-    loadNews(id),
-    loadMomentum(id),
+    loadScorecard(id).catch(()=>null),
+    loadImpact(id).catch(()=>[]),
+    loadCommentary(id).catch(()=>[]),
+    loadNews(id).catch(()=>[]),
+    loadMomentum(id).catch(()=>null),
   ]);
-  // Scorecard
-  INN = scorecard;
+  // Scorecard — guard against null
+  INN = scorecard || {};
   // Impact
-  IMPACT_TEAMS = impact;
-  // Commentary (init reaction counts)
-  COMM = commentary;
+  IMPACT_TEAMS = impact || [];
+  // Commentary — always set, even if empty array
+  COMM = Array.isArray(commentary) ? commentary : [];
   initReactions();
   // News
-  NEWS_DATA = news;
+  NEWS_DATA = Array.isArray(news) ? news : [];
   // Momentum — null means no data saved yet, show empty state
   if(momentum){
     NZ_INN = momentum.inn1;
@@ -1484,7 +1484,15 @@ let _activeInn=1;
 function buildScorecard(n){
   _activeInn=n;
   document.querySelectorAll('.inn-btn').forEach(b=>b.classList.toggle('on',+b.dataset.inn===n));
-  const d=INN[n],s=d.sum;
+  const d = INN[n];
+  if(!d || !d.sum){
+    // No scorecard data yet — show empty state
+    document.getElementById('inn-stats').innerHTML='<div style="color:var(--t4);font-size:12px;padding:8px 0">Scorecard will auto-build once commentary is saved</div>';
+    document.getElementById('bat-tbl').innerHTML='';
+    document.getElementById('bowl-tbl').innerHTML='';
+    return;
+  }
+  const s = d.sum;
   document.getElementById('inn-stats').innerHTML=`<div><div class="ins-val">${s.score}</div><div class="ins-lbl">Score</div></div><div><div class="ins-val">${s.ov}</div><div class="ins-lbl">Overs</div></div><div><div class="ins-val">${s.extras||0} <span style="font-size:9px;color:var(--t3)">${s.extrasStr||''}</span></div><div class="ins-lbl">Extras</div></div><div><div class="ins-val">${s.rr}</div><div class="ins-lbl">Run Rate</div></div><div><div class="ins-val">${s.highest||'—'}</div><div class="ins-lbl">Highest</div></div><div><div class="ins-val">${s.pship||'—'}</div><div class="ins-lbl">Best P\'ship</div></div>`;
   document.getElementById('bat-tbl').innerHTML=`<table class="ct"><thead><tr><th>Batter</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead><tbody>${d.bat.map(p=>p.dnb?`<tr><td><span class="pn">${p.n}</span></td><td colspan="5" class="dnb">Did not bat</td></tr>`:`<tr><td><span class="pn">${p.n}${!p.out?' <span style="color:var(--lime);font-size:9px">★</span>':''}</span><span class="pd">${p.dis}</span></td><td class="${p.r>=50?'hl-r':''}">${p.r}</td><td>${p.b}</td><td>${p.f}</td><td style="color:${p.s>0?'var(--cyan)':''}">${p.s}</td><td style="color:${typeof p.sr==='number'&&p.sr>=150?'var(--lime)':typeof p.sr==='number'&&p.sr<100?'var(--red)':'var(--t2)'}">${typeof p.sr==='number'?p.sr.toFixed(1):p.sr}</td></tr>`).join('')}</tbody></table>`;
   document.getElementById('bowl-tbl').innerHTML=`<table class="ct"><thead><tr><th>Bowler</th><th>O</th><th>M</th><th>R</th><th>W</th><th>Eco</th><th>Dots</th><th>Wd</th><th>Nb</th></tr></thead><tbody>${d.bowl.map(p=>`<tr><td><span class="pn">${p.n}</span></td><td>${p.o}</td><td>${p.m}</td><td>${p.r}</td><td class="${p.w>=2?'hl-w':''}">${p.w}</td><td class="${p.eco<=8?'hl-e':p.eco>=11?'hl-w':''}">${typeof p.eco==='number'?p.eco.toFixed(2):p.eco}</td><td>${p.dot}</td><td>${p.wd||0}</td><td>${p.nb||0}</td></tr>`).join('')}</tbody></table>`;
@@ -1570,8 +1578,12 @@ function getBattingMomentum(balls, currentIdx){
 
 function renderComm(){
   const list = document.getElementById('comm-list');
+  if(!COMM || !COMM.length){
+    list.innerHTML='<div style="color:var(--t4);font-size:12px;padding:20px;text-align:center">No commentary yet — add balls via admin panel</div>';
+    return;
+  }
   list.innerHTML = COMM.map((c,idx)=>{
-    const text = c[{n:'n',h:'h',a:'a',m:'m'}[flavor]] || c.n || '';
+    const text = (c[{n:'n',h:'h',a:'a',m:'m'}[flavor]] || c.n || '').replace(/[^\x20-\x7E\u00A0-\uFFFF]/g,''); // strip invalid chars
     const momentum = getBattingMomentum(COMM, idx);
 
     // GIF placeholder — rendered async after
