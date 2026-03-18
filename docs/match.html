@@ -1388,24 +1388,14 @@ async function loadNews(id){
 // ══════════════════════════════════════════════════════════════════════════════
 // SECTION 3 — MOMENTUM DATA
 // FUTURE: async function loadMomentum(id){ return fetch(`/api/matches/${id}/momentum`).then(r=>r.json()); }
-// Returns { inn1: NZ_INN, inn2: SA_INN, wf1, wf2 } — same shape as below.
+// Returns { inn1, inn2, wf1, wf2 } — same shape as below.
 // Canvas engine (drawMomentum, drawProgress) is completely untouched.
 // ══════════════════════════════════════════════════════════════════════════════
 async function loadMomentum(id){
   const stored = localStorage.getItem(`cricai_match_${id}_momentum`);
   if(stored) return JSON.parse(stored);
-  return {
-    inn1:{flag:'🇳🇿',colHi:T.nzHi,col:T.nz,wp0:50,
-      cumScores:[0,8,14,21,31,43,52,61,69,79,87,96,102,113,120,134,143,151,162,175,186],
-      data:[{o:1,r:8,wp:52,type:'normal',wkt:[],msd:null,lmk:null},{o:2,r:6,wp:49,type:'collapse',wkt:['Guptill b Rabada 14'],msd:null,lmk:null},{o:3,r:7,wp:50,type:'normal',wkt:[],msd:null,lmk:null},{o:4,r:10,wp:55,type:'boundary_burst',wkt:[],msd:null,lmk:null},{o:5,r:12,wp:58,type:'boundary_burst',wkt:[],msd:null,lmk:null},{o:6,r:9,wp:57,type:'normal',wkt:[],msd:null,lmk:null},{o:7,r:9,wp:59,type:'normal',wkt:[],msd:null,lmk:null},{o:8,r:8,wp:60,type:'normal',wkt:[],msd:null,lmk:null},{o:9,r:10,wp:64,type:'boundary_burst',wkt:[],msd:null,lmk:null},{o:10,r:8,wp:60,type:'collapse',wkt:['Williamson c Klaasen b Maharaj 34'],msd:null,lmk:null},{o:11,r:9,wp:61,type:'dot_cluster',wkt:[],msd:'Conway DROPPED on 44 — Nortje grasses it',lmk:null},{o:12,r:6,wp:59,type:'dot_cluster',wkt:[],msd:null,lmk:'Conway 50'},{o:13,r:11,wp:65,type:'boundary_burst',wkt:[],msd:null,lmk:null},{o:14,r:7,wp:61,type:'collapse',wkt:['Phillips run out 28'],msd:null,lmk:null},{o:15,r:14,wp:71,type:'boundary_burst',wkt:[],msd:null,lmk:null},{o:16,r:9,wp:66,type:'collapse',wkt:['Nicholls c Bavuma b Nortje 19'],msd:null,lmk:null},{o:17,r:8,wp:64,type:'dot_cluster',wkt:[],msd:'Conway near run-out on 65',lmk:null},{o:18,r:11,wp:68,type:'boundary_burst',wkt:[],msd:null,lmk:null},{o:19,r:13,wp:63,type:'boundary_burst',wkt:['Conway c de Kock b Rabada 72'],msd:null,lmk:'Conway 72'},{o:20,r:11,wp:62,type:'normal',wkt:['Santner b Rabada 0'],msd:null,lmk:null}]
-    },
-    inn2:{flag:'🇿🇦',colHi:T.saHi,col:T.sa,wp0:38,target:187,
-      cumScores:[0,6,14,23,32,38,43,51,61,68,80,90,98,107,116,122,140],
-      data:[{o:1,r:6,wp:37,type:'normal',wkt:[],msd:null,lmk:null},{o:2,r:8,wp:39,type:'normal',wkt:[],msd:null,lmk:null},{o:3,r:9,wp:41,type:'boundary_burst',wkt:[],msd:null,lmk:null},{o:4,r:9,wp:35,type:'collapse',wkt:['Bavuma c Conway b Southee 24'],msd:null,lmk:null},{o:5,r:6,wp:28,type:'collapse',wkt:['Rossouw b Southee 18'],msd:null,lmk:null},{o:6,r:5,wp:27,type:'dot_cluster',wkt:[],msd:null,lmk:null},{o:7,r:8,wp:29,type:'normal',wkt:[],msd:null,lmk:null},{o:8,r:10,wp:33,type:'boundary_burst',wkt:[],msd:null,lmk:null},{o:9,r:7,wp:30,type:'dot_cluster',wkt:[],msd:'de Kock DROPPED on 18 — Milne huge miss!',lmk:null},{o:10,r:12,wp:37,type:'boundary_burst',wkt:[],msd:null,lmk:null},{o:11,r:10,wp:41,type:'boundary_burst',wkt:[],msd:null,lmk:null},{o:12,r:8,wp:34,type:'collapse',wkt:['Miller c Mitchell b Santner 5'],msd:null,lmk:null},{o:13,r:9,wp:37,type:'normal',wkt:[],msd:null,lmk:'de Kock 50'},{o:14,r:9,wp:28,type:'collapse',wkt:['Jansen lbw b Ferguson 4'],msd:'Klaasen near run-out — survived!',lmk:null},{o:15,r:6,wp:21,type:'dot_cluster',wkt:[],msd:null,lmk:null},{o:16,r:18,wp:38,type:'boundary_burst',wkt:[],msd:null,lmk:null}]
-    },
-    wf1:[[2,14,'Guptill'],[10,87,'Williamson'],[14,120,'Phillips'],[16,143,'Nicholls'],[19,175,'Conway'],[20,183,'Santner']],
-    wf2:[[4,32,'Bavuma'],[5,38,'Rossouw'],[12,98,'Miller'],[14,116,'Jansen']]
-  };
+  // No data yet — return empty innings so canvas shows "awaiting data"
+  return null;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1435,16 +1425,38 @@ async function initMatchData(id){
   initReactions();
   // News
   NEWS_DATA = news;
-  // Momentum
-  NZ_INN = momentum.inn1;
-  SA_INN = momentum.inn2;
-  NZ_WF  = momentum.wf1;
-  SA_WF  = momentum.wf2;
-  const totalOvers = NZ_INN.cumScores.length - 1;
-  const target = SA_INN.target || (NZ_INN.cumScores[totalOvers] + 1);
-  PAR    = Array.from({length:totalOvers+1},(_,i)=>Math.round(target*i/totalOvers));
-  SA_RRR = computeRRR(SA_INN.cumScores, target, totalOvers);
-  SA_CRR = SA_INN.cumScores.map((sc,ov)=>ov===0?0:+(sc/ov).toFixed(2));
+  // Momentum — null means no data saved yet, show empty state
+  if(momentum){
+    NZ_INN = momentum.inn1;
+    SA_INN = momentum.inn2;
+    NZ_WF  = momentum.wf1;
+    SA_WF  = momentum.wf2;
+    const totalOvers = NZ_INN.cumScores.length - 1;
+    const target = SA_INN.target || (NZ_INN.cumScores[totalOvers] + 1);
+    PAR    = Array.from({length:totalOvers+1},(_,i)=>Math.round(target*i/totalOvers));
+    SA_RRR = computeRRR(SA_INN.cumScores, target, totalOvers);
+    SA_CRR = SA_INN.cumScores.map((sc,ov)=>ov===0?0:+(sc/ov).toFixed(2));
+  } else {
+    // No momentum data — draw empty state on all canvases
+    NZ_INN = {flag:'',colHi:T.nzHi,col:T.nz,wp0:50,cumScores:[0],data:[]};
+    SA_INN = {flag:'',colHi:T.saHi,col:T.sa,wp0:50,target:0,cumScores:[0],data:[]};
+    NZ_WF=[]; SA_WF=[]; PAR=[0]; SA_RRR=[]; SA_CRR=[];
+    // Draw "awaiting data" message on each canvas
+    [cvNZ, cvSA, cvPrg].forEach(cv => {
+      const {ctx, W, H} = setupCanvas(cv);
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = 'rgba(255,255,255,0.06)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.font = '500 12px "DM Sans", sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('Momentum data not yet added', W/2, H/2 - 10);
+      ctx.font = '11px "DM Sans", sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
+      ctx.fillText('Add over-by-over data in admin panel', W/2, H/2 + 12);
+    });
+  }
 }
 
 // ── BUILDERS ──
@@ -1456,9 +1468,9 @@ function buildScorecard(n){
   _activeInn=n;
   document.querySelectorAll('.inn-btn').forEach(b=>b.classList.toggle('on',+b.dataset.inn===n));
   const d=INN[n],s=d.sum;
-  document.getElementById('inn-stats').innerHTML=`<div><div class="ins-val">${s.score}</div><div class="ins-lbl">Score</div></div><div><div class="ins-val">${s.ov}</div><div class="ins-lbl">Overs</div></div><div><div class="ins-val">${s.extras}</div><div class="ins-lbl">Extras</div></div><div><div class="ins-val">${s.rr}</div><div class="ins-lbl">Run Rate</div></div><div><div class="ins-val">${s.highest}</div><div class="ins-lbl">Highest</div></div><div><div class="ins-val">${s.pship}</div><div class="ins-lbl">Best P\'ship</div></div>`;
+  document.getElementById('inn-stats').innerHTML=`<div><div class="ins-val">${s.score}</div><div class="ins-lbl">Score</div></div><div><div class="ins-val">${s.ov}</div><div class="ins-lbl">Overs</div></div><div><div class="ins-val">${s.extras||0} <span style="font-size:9px;color:var(--t3)">${s.extrasStr||''}</span></div><div class="ins-lbl">Extras</div></div><div><div class="ins-val">${s.rr}</div><div class="ins-lbl">Run Rate</div></div><div><div class="ins-val">${s.highest||'—'}</div><div class="ins-lbl">Highest</div></div><div><div class="ins-val">${s.pship||'—'}</div><div class="ins-lbl">Best P\'ship</div></div>`;
   document.getElementById('bat-tbl').innerHTML=`<table class="ct"><thead><tr><th>Batter</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead><tbody>${d.bat.map(p=>p.dnb?`<tr><td><span class="pn">${p.n}</span></td><td colspan="5" class="dnb">Did not bat</td></tr>`:`<tr><td><span class="pn">${p.n}${!p.out?' <span style="color:var(--lime);font-size:9px">★</span>':''}</span><span class="pd">${p.dis}</span></td><td class="${p.r>=50?'hl-r':''}">${p.r}</td><td>${p.b}</td><td>${p.f}</td><td style="color:${p.s>0?'var(--cyan)':''}">${p.s}</td><td style="color:${typeof p.sr==='number'&&p.sr>=150?'var(--lime)':typeof p.sr==='number'&&p.sr<100?'var(--red)':'var(--t2)'}">${typeof p.sr==='number'?p.sr.toFixed(1):p.sr}</td></tr>`).join('')}</tbody></table>`;
-  document.getElementById('bowl-tbl').innerHTML=`<table class="ct"><thead><tr><th>Bowler</th><th>O</th><th>M</th><th>R</th><th>W</th><th>Eco</th><th>Dots</th><th>Wd</th></tr></thead><tbody>${d.bowl.map(p=>`<tr><td><span class="pn">${p.n}</span></td><td>${p.o}</td><td>${p.m}</td><td>${p.r}</td><td class="${p.w>=2?'hl-w':''}">${p.w}</td><td class="${p.eco<=8?'hl-e':p.eco>=11?'hl-w':''}">${p.eco.toFixed(2)}</td><td>${p.dot}</td><td>${p.wd}</td></tr>`).join('')}</tbody></table>`;
+  document.getElementById('bowl-tbl').innerHTML=`<table class="ct"><thead><tr><th>Bowler</th><th>O</th><th>M</th><th>R</th><th>W</th><th>Eco</th><th>Dots</th><th>Wd</th><th>Nb</th></tr></thead><tbody>${d.bowl.map(p=>`<tr><td><span class="pn">${p.n}</span></td><td>${p.o}</td><td>${p.m}</td><td>${p.r}</td><td class="${p.w>=2?'hl-w':''}">${p.w}</td><td class="${p.eco<=8?'hl-e':p.eco>=11?'hl-w':''}">${typeof p.eco==='number'?p.eco.toFixed(2):p.eco}</td><td>${p.dot}</td><td>${p.wd||0}</td><td>${p.nb||0}</td></tr>`).join('')}</tbody></table>`;
 }
 const _innSw = document.getElementById('inn-sw');
 if(_innSw) _innSw.addEventListener('click',e=>{const b=e.target.closest('.inn-btn');if(b)buildScorecard(+b.dataset.inn);});
@@ -1938,8 +1950,9 @@ loadMatch(_matchId).then(async data => {
   buildImpact();
   renderComm();
   buildNews();
-  // Start canvas after data is populated
-  startMomentum();
+  // Start canvas — only animate if momentum data exists
+  // If no data, initMatchData already drew the "awaiting data" empty state
+  if(NZ_INN.data && NZ_INN.data.length > 0) startMomentum();
   // If live: start polling — refreshes hero + all features every 15s
   if(data.status === 'live') startLivePoll(_matchId);
 });
@@ -1964,9 +1977,11 @@ function startLivePoll(id) {
       buildImpact();
       renderComm();                 // preserves current flavor (normal/hot/fan/meme)
       buildNews();
-      // 4. Redraw momentum canvas with updated data
-      animProg = 0;
-      renderAll(1);                 // instant redraw (no animation on poll refresh)
+      // 4. Redraw momentum canvas only if data exists
+      if(NZ_INN.data && NZ_INN.data.length > 0){
+        animProg = 0;
+        renderAll(1); // instant redraw (no animation on poll refresh)
+      }
     } catch(e) { /* silent fail — stale data is acceptable */ }
   }, 15000); // 15s — reduce to 5s once on SSE
 }

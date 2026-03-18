@@ -927,21 +927,49 @@ Innings: ${inn}
 CRITICAL RULES:
 1. Return ONLY a valid JSON array — no markdown, no backticks, no explanation.
 2. One object per ball/delivery.
-3. For the "n" field — write FRESH, ORIGINAL broadcast commentary in your own words. Do NOT copy the raw input. Imagine you are a professional commentator describing the ball with precision and flair.
-4. For "h", "a", "m" — these are completely different perspectives on the SAME ball.
+3. Each of the 4 commentary flavours must feel COMPLETELY DIFFERENT in tone, vocabulary, and emotional register. Never let two flavours sound similar.
+4. NEVER start two consecutive "n" fields with the same word or phrase.
+
+FLAVOUR GUIDE — read carefully, these must feel distinct:
+
+- n: BROADCAST COMMENTARY. 2-3 sentences. You are a world-class commentator — think Harsha Bhogle meets Ravi Shastri. Paint the picture: the bowler's run-up, the sound of ball on bat, the fielder's dive, the crowd. Use vivid cricket vocabulary (corridor of uncertainty, seam movement, murderous pull, feathered edge). Present tense, rhythmic, builds tension. For wickets: describe the dismissal cinematically. For boundaries: make the reader feel the ball flying. For dots: emphasise the pressure building.
+
+- h: HOME TEAM FAN. Fully unhinged loyalty. When their team does well — pure euphoria, ALL CAPS moments, "THIS IS OUR YEAR", tagging friends, threatening to never sleep. When things go badly — immediate denial ("pitch is damp", "sun in his eyes", "clearly knocked the pad not the bat"), wild optimism ("still 47 off 24 we got this"), or catastrophising dramatically. This fan has watched cricket for 30 years and their blood pressure shows it. Never calm. Never objective. Uses "WE" for their team.
+
+- a: AWAY TEAM FAN. Same intensity, opposite emotion. When bowling well — smug, taunting, already planning the victory parade. When getting hit — existential crisis, questioning life choices, inventing conspiracy theories. Has a rivalry-specific grudge. Uses sledging nicknames. Equal parts desperate and delusional. Should feel like they're texting their equally-unhinged group chat.
+
+- m: THE INTERNET. This is the crown jewel — make it genuinely shareable. Pull from ALL of these tones freely and mix them:
+  • ROAST: Savage personal burn on the batter or bowler. Attack their technique, their recent form, their previous failures. No mercy.
+  • MEME: Reference a specific meme format, pop culture moment, movie scene, or viral trend. Make it specific not generic.
+  • SARCASM: Weaponised politeness. "Oh yes, absolutely, that was the plan all along."
+  • DARK HUMOUR: The kind that makes you wince then laugh. Perfect for dropped catches, run-outs, bad decisions.
+  • DISDAIN: Utter contempt delivered with devastating calm. One sentence. No explanation needed.
+  • ABSURDIST: Something so random and unexpected it's funny purely because of how unhinged it is.
+  • CROWD WISDOM: The thing every fan in the stadium is thinking but won't say out loud.
+  Pick whichever tone(s) fit the ball best. A six gets roast+absurdist. A wicket gets dark humour+disdain. A dot gets sarcasm+crowd wisdom. The goal: someone reads this on a train and laughs out loud. 2-3 sentences max. Punch hard.
+
+EXTRAS RULES (very important for correct scoring):
+- bye (b): runs credited to TEAM but NOT to batter, NOT to bowler. Legal delivery (counts in over).
+- leg bye (lb): same as bye — team runs only, not batter, not bowler. Legal delivery.
+- wide (w): runs to TEAM and BOWLER. NOT credited to batter. Does NOT count as legal delivery (over ball count unchanged).
+- no ball (nb): 1 run penalty to TEAM and BOWLER always. If batter hits it, batting runs ALSO credited to batter AND team. Does NOT count as legal delivery.
+- Combined e.g. "2lb" = 2 leg byes, "1nb" = no ball + 0 bat runs, "1nb 4" = no ball + 4 bat runs off it.
 
 Each ball object must have exactly these fields:
 - inn: ${inn} (integer)
-- ov: "over.ball" string e.g. "0.3" — infer from sequence if not shown
-- res: one of "six"|"four"|"wicket"|"dot"|"single"|"two"|"three"|"wide"|"noball"
+- ov: "over.ball" string e.g. "0.3" — infer from sequence if not shown. Wides/no-balls do NOT advance the ball count.
+- res: one of "six"|"four"|"wicket"|"dot"|"single"|"two"|"three"|"wide"|"noball"|"bye"|"legbye"
 - btr: batsman surname only (e.g. "Farhan")
 - bwl: bowler surname only (e.g. "Dube")
-- runs: integer (0 for dot/wicket/wide, actual runs otherwise)
+- batRuns: integer runs credited to BATTER (0 for bye/legbye/wide/dot, actual bat runs otherwise including off a no-ball)
+- extraType: one of ""|"b"|"lb"|"w"|"nb"|"p" — empty string if no extra
+- extraRuns: integer extra runs (penalty runs: 1 for wide/nb base, plus any additional runs; 0 if no extra)
+- totalRuns: batRuns + extraRuns (total runs scored off this ball)
 - dismissal: if wicket → full string e.g. "c Rohit b Dube 4(8)", else ""
-- n: YOUR OWN crisp broadcast commentary (1-2 sentences). Sharp, factual, present tense. Vary your vocabulary — never start two balls the same way.
-- h: passionate reaction from a fan of the BATTING team (excited if scoring, devastated if wicket)
-- a: reaction from a fan of the BOWLING team (opposite emotion to h)
-- m: witty internet meme-style comment. Irreverent, punchy, modern. Not just a pun — make it genuinely funny.
+- n: (see FLAVOUR GUIDE above)
+- h: (see FLAVOUR GUIDE above)
+- a: (see FLAVOUR GUIDE above)
+- m: (see FLAVOUR GUIDE above)
 
 Raw commentary to parse:
 ${raw}`;
@@ -1366,48 +1394,114 @@ function computeScorecard(balls){
   const result = {};
   [1,2].forEach(inn=>{
     const innBalls = balls.filter(b=>+b.inn===inn);
-    if(!innBalls.length){ result[inn]={sum:{score:'—',ov:'0.0',extras:0,rr:0,highest:'',pship:''},bat:[],bowl:[]}; return; }
+    if(!innBalls.length){
+      result[inn]={sum:{score:'—',ov:'0.0',extras:0,extrasBreakdown:{b:0,lb:0,w:0,nb:0,p:0},rr:0,highest:'',pship:''},bat:[],bowl:[]};
+      return;
+    }
 
     const batters={}, bowlers={};
-    let totalRuns=0, totalBalls=0, totalWickets=0, extras=0;
+    let totalRuns=0, legalBalls=0, totalWickets=0;
+    // Track extras by type
+    const ex={b:0,lb:0,w:0,nb:0,p:0};
 
     innBalls.forEach(b=>{
-      const isExtra = b.res==='wide'||b.res==='noball';
-      // Batter
+      // Support both old format (runs field) and new format (batRuns/extraType/extraRuns)
+      // Normalise to new format if old ball structure detected
+      const isOldFormat = b.batRuns===undefined;
+      let batRuns, extraType, extraRuns, isLegal;
+
+      if(isOldFormat){
+        // Legacy: infer from res
+        extraType = (b.res==='wide')?'w':(b.res==='noball')?'nb':(b.res==='bye')?'b':(b.res==='legbye')?'lb':'';
+        batRuns   = (extraType===''||extraType==='nb') ? (b.runs||0) : 0;
+        extraRuns = extraType==='w' ? 1+(b.runs||0) : extraType==='nb' ? 1 : extraType==='b'||extraType==='lb' ? (b.runs||0) : 0;
+        isLegal   = extraType!=='w' && extraType!=='nb';
+      } else {
+        batRuns   = b.batRuns||0;
+        extraType = b.extraType||'';
+        extraRuns = b.extraRuns||0;
+        isLegal   = extraType!=='w' && extraType!=='nb';
+      }
+
+      const ballTotalRuns = (b.totalRuns!==undefined) ? b.totalRuns : batRuns+extraRuns;
+
+      // ── BATTER ──────────────────────────────────────────────────
       if(b.btr){
         if(!batters[b.btr]) batters[b.btr]={n:b.btr,r:0,b:0,f:0,s:0,dis:'not out',out:false};
-        if(!isExtra && b.res!=='wicket') batters[b.btr].r += (b.runs||0);
-        if(!isExtra) batters[b.btr].b += 1;
+        // Batter gets credit for bat runs only (not byes, leg byes, wides)
+        batters[b.btr].r += batRuns;
+        // Batter's balls faced: legal deliveries only (not wide, not no-ball)
+        // No-ball: batter faces it BUT it doesn't count as a legal ball
+        if(extraType!=='w') batters[b.btr].b += 1; // faced (including nb)
         if(b.res==='four') batters[b.btr].f += 1;
         if(b.res==='six')  batters[b.btr].s += 1;
         if(b.res==='wicket'){ batters[b.btr].out=true; batters[b.btr].dis=b.dismissal||'out'; }
       }
-      // Bowler
+
+      // ── BOWLER ──────────────────────────────────────────────────
       if(b.bwl){
-        if(!bowlers[b.bwl]) bowlers[b.bwl]={n:b.bwl,balls:0,r:0,w:0,dot:0,wd:0,m:0};
-        bowlers[b.bwl].r += (b.runs||0);
-        if(b.res==='wide') { bowlers[b.bwl].wd+=1; bowlers[b.bwl].r+=1; extras++; }
-        else { bowlers[b.bwl].balls+=1; if(b.res==='dot') bowlers[b.bwl].dot+=1; }
-        if(b.res==='wicket') bowlers[b.bwl].w+=1;
+        if(!bowlers[b.bwl]) bowlers[b.bwl]={n:b.bwl,balls:0,r:0,w:0,dot:0,wd:0,nb:0};
+        // Bowler concedes: bat runs + wide/nb penalties (NOT byes or leg byes)
+        if(extraType===''||extraType==='nb'){
+          bowlers[b.bwl].r += batRuns;
+          if(extraType==='nb') { bowlers[b.bwl].r+=1; bowlers[b.bwl].nb+=1; } // nb penalty
+        } else if(extraType==='w'){
+          bowlers[b.bwl].r += extraRuns; // wide runs all charged to bowler
+          bowlers[b.bwl].wd += 1;
+        }
+        // Legal balls for bowler (no wides, no no-balls)
+        if(isLegal){
+          bowlers[b.bwl].balls += 1;
+          if(batRuns===0 && extraType==='' && b.res!=='wicket') bowlers[b.bwl].dot += 1;
+        }
+        if(b.res==='wicket') bowlers[b.bwl].w += 1;
       }
-      if(!isExtra){ totalBalls++; totalRuns+=(b.runs||0); }
-      else extras++;
+
+      // ── TEAM TOTALS ──────────────────────────────────────────────
+      totalRuns += ballTotalRuns;
+      if(extraType==='b')  ex.b += extraRuns;
+      if(extraType==='lb') ex.lb += extraRuns;
+      if(extraType==='w')  ex.w += extraRuns;
+      if(extraType==='nb') ex.nb += extraRuns + batRuns; // nb penalty + any bat runs
+      if(extraType==='p')  ex.p += extraRuns;
+      if(isLegal) legalBalls++;
       if(b.res==='wicket') totalWickets++;
     });
 
-    const ovFull=Math.floor(totalBalls/6), ovBall=totalBalls%6;
-    const rr = totalBalls>0 ? +((totalRuns/totalBalls)*6).toFixed(2) : 0;
+    const totalExtras = ex.b+ex.lb+ex.w+ex.nb+ex.p;
+    const ovFull = Math.floor(legalBalls/6), ovBall = legalBalls%6;
+    const rr = legalBalls>0 ? +((totalRuns/legalBalls)*6).toFixed(2) : 0;
+
     const batList = Object.values(batters).map(b=>({
       ...b, sr: b.b>0 ? +((b.r/b.b)*100).toFixed(1) : 0
     }));
+
     const bowlList = Object.values(bowlers).map(b=>({
-      n:b.n, o:`${Math.floor(b.balls/6)}.${b.balls%6}`,
+      n:b.n,
+      o:`${Math.floor(b.balls/6)}.${b.balls%6}`,
       m:0, r:b.r, w:b.w,
       eco: b.balls>0 ? +((b.r/b.balls)*6).toFixed(2) : 0,
-      dot:b.dot, wd:b.wd
+      dot:b.dot, wd:b.wd, nb:b.nb
     }));
+
+    // Extras breakdown string e.g. "(b4, lb2, w3, nb1)"
+    const exParts=[];
+    if(ex.b)  exParts.push(`b ${ex.b}`);
+    if(ex.lb) exParts.push(`lb ${ex.lb}`);
+    if(ex.w)  exParts.push(`w ${ex.w}`);
+    if(ex.nb) exParts.push(`nb ${ex.nb}`);
+    if(ex.p)  exParts.push(`p ${ex.p}`);
+    const extrasStr = exParts.length ? `(${exParts.join(', ')})` : '';
+
     result[inn]={
-      sum:{score:`${totalRuns}/${totalWickets}`,ov:`${ovFull}.${ovBall}`,extras,rr,highest:'',pship:''},
+      sum:{
+        score:`${totalRuns}/${totalWickets}`,
+        ov:`${ovFull}.${ovBall}`,
+        extras:totalExtras,
+        extrasStr,
+        extrasBreakdown:{...ex},
+        rr, highest:'', pship:''
+      },
       bat:batList, bowl:bowlList
     };
   });
