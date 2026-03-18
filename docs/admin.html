@@ -284,8 +284,9 @@ pre.result-json{font-family:var(--fm);font-size:11px;color:var(--t2);line-height
       <div class="sb-label">localStorage status</div>
       <div class="store-grid" id="store-grid">
         <div class="store-item"><span class="store-name">Info</span><div class="store-dot" id="dot-info"></div></div>
-        <div class="store-item"><span class="store-name">Scorecard</span><div class="store-dot" id="dot-scorecard"></div></div>
+        <div class="store-item"><span class="store-name">Playing XI</span><div class="store-dot" id="dot-xi"></div></div>
         <div class="store-item"><span class="store-name">Commentary</span><div class="store-dot" id="dot-commentary"></div></div>
+        <div class="store-item"><span class="store-name">Scorecard</span><div class="store-dot" id="dot-scorecard"></div></div>
         <div class="store-item"><span class="store-name">Impact</span><div class="store-dot" id="dot-impact"></div></div>
         <div class="store-item"><span class="store-name">Momentum</span><div class="store-dot" id="dot-momentum"></div></div>
         <div class="store-item"><span class="store-name">News</span><div class="store-dot" id="dot-news"></div></div>
@@ -303,10 +304,11 @@ pre.result-json{font-family:var(--fm);font-size:11px;color:var(--t2);line-height
   <div class="main">
     <div class="tabs">
       <button class="tab on" data-tab="info" onclick="switchTab(this)"><div class="tab-dot"></div>Match Info</button>
+      <button class="tab" data-tab="xi" onclick="switchTab(this)"><div class="tab-dot"></div>Playing XI</button>
       <button class="tab" data-tab="commentary" onclick="switchTab(this)"><div class="tab-dot"></div>Commentary <span class="cnt" id="comm-cnt">0</span></button>
-      <button class="tab" data-tab="scorecard" onclick="switchTab(this)"><div class="tab-dot"></div>Scorecard</button>
+      <button class="tab" data-tab="scorecard" onclick="switchTab(this)"><div class="tab-dot"></div>Scorecard <span style="font-size:9px;color:var(--t3)">(auto)</span></button>
       <button class="tab" data-tab="impact" onclick="switchTab(this)"><div class="tab-dot"></div>Impact</button>
-      <button class="tab" data-tab="momentum" onclick="switchTab(this)"><div class="tab-dot"></div>Momentum</button>
+      <button class="tab" data-tab="momentum" onclick="switchTab(this)"><div class="tab-dot"></div>Momentum <span style="font-size:9px;color:var(--t3)">(auto)</span></button>
       <button class="tab" data-tab="news" onclick="switchTab(this)"><div class="tab-dot"></div>News</button>
     </div>
     <div class="tab-pages">
@@ -433,38 +435,77 @@ pre.result-json{font-family:var(--fm);font-size:11px;color:var(--t2);line-height
           </div>
         </div>
 
+        <!-- TOSS -->
+        <div style="background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:14px;margin-bottom:16px">
+          <div class="sec-title" style="font-size:12px;margin-bottom:10px">TOSS</div>
+          <div class="input-row cols-3">
+            <div class="input-group" style="margin-bottom:0">
+              <div class="input-label">Toss Won By</div>
+              <select class="field" id="f-toss-winner">
+                <option value="">— not yet —</option>
+                <option value="team1">Team 1</option>
+                <option value="team2">Team 2</option>
+              </select>
+            </div>
+            <div class="input-group" style="margin-bottom:0">
+              <div class="input-label">Elected To</div>
+              <select class="field" id="f-toss-decision">
+                <option value="bat">Bat</option>
+                <option value="field">Field</option>
+              </select>
+            </div>
+            <div class="input-group" style="margin-bottom:0">
+              <div class="input-label">Batting First (Inn 1)</div>
+              <select class="field" id="f-batting-first">
+                <option value="team1">Team 1</option>
+                <option value="team2">Team 2</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
         <div class="btn-row">
           <button class="save-btn" id="save-info-btn" onclick="saveInfo()">💾 Save Match Info</button>
         </div>
       </div>
 
-      <!-- ── COMMENTARY TAB ── -->
+      <!-- ── PLAYING XI TAB ── -->
+      <div class="tab-page" id="tab-xi">
+        <div class="sec-hdr"><div><div class="sec-title">PLAYING XI</div><div class="sec-sub">11 players per team — used to auto-build scorecard from commentary</div></div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+          <div>
+            <div style="font-family:var(--fd);font-size:13px;letter-spacing:1.5px;color:var(--lime);margin-bottom:10px" id="xi-t1-label">TEAM 1</div>
+            <div id="xi-team1"></div>
+            <button class="add-row-btn" onclick="addXIRow(1)">+ Add player</button>
+          </div>
+          <div>
+            <div style="font-family:var(--fd);font-size:13px;letter-spacing:1.5px;color:var(--cyan);margin-bottom:10px" id="xi-t2-label">TEAM 2</div>
+            <div id="xi-team2"></div>
+            <button class="add-row-btn" onclick="addXIRow(2)">+ Add player</button>
+          </div>
+        </div>
+        <div class="btn-row" style="margin-top:20px">
+          <button class="save-btn" onclick="saveXI()">💾 Save Playing XI</button>
+        </div>
+      </div>
       <div class="tab-page" id="tab-commentary">
         <div class="sec-hdr">
-          <div><div class="sec-title">BALL-BY-BALL COMMENTARY</div><div class="sec-sub">Paste raw commentary → Claude parses into all 4 flavours automatically</div></div>
+          <div><div class="sec-title">BALL-BY-BALL COMMENTARY</div><div class="sec-sub">Paste → Parse with Claude → Save → scorecard + momentum auto-build</div></div>
         </div>
 
-        <div class="input-group">
-          <div class="input-label">Raw Commentary Input <span class="hint">— one ball per line, any format</span></div>
-          <div class="paste-area">
-            <textarea class="field xl" id="raw-comm" placeholder="Paste ball-by-ball commentary here. Any format works:
-
-16.3 De Kock b Milne, SIX. Pulled over midwicket, massive hit.
-16.1 De Kock b Milne, FOUR. Driven through cover, perfect timing.
-15.4 Jansen b Ferguson, OUT. Jansen lbw across the line, NZ breakthrough.
-14.2 Klaasen b Santner, 1 run. Tucked to fine leg.
-13.1 Miller b Santner, CAUGHT. Taken at deep midwicket, gone for 5.
-11.3 Klaasen b Milne, SIX. Pulled off back foot, six!"></textarea>
-            <div class="paste-hint">supports any format</div>
+        <div class="input-row cols-3" style="margin-bottom:12px">
+          <div class="input-group" style="margin-bottom:0">
+            <div class="input-label">Innings</div>
+            <select class="field" id="comm-inn">
+              <option value="1">Innings 1 (batting first)</option>
+              <option value="2">Innings 2 (chase / 2nd)</option>
+            </select>
           </div>
-        </div>
-
-        <div class="input-row cols-2">
-          <div class="input-group">
-            <div class="input-label">Match Context <span class="hint">(helps Claude write better flavour)</span></div>
-            <input class="field" id="comm-context" placeholder="NZ 186/6 (20 ov) vs SA 140/4 chasing 187, over 16">
+          <div class="input-group" style="margin-bottom:0">
+            <div class="input-label">Match Context <span class="hint">(for flavour)</span></div>
+            <input class="field" id="comm-context" placeholder="Asia Cup Final, IND vs PAK, over 0.1">
           </div>
-          <div class="input-group">
+          <div class="input-group" style="margin-bottom:0">
             <div class="input-label">Append mode</div>
             <select class="field" id="comm-mode">
               <option value="replace">Replace all commentary</option>
@@ -474,12 +515,41 @@ pre.result-json{font-family:var(--fm);font-size:11px;color:var(--t2);line-height
           </div>
         </div>
 
+        <div class="input-group">
+          <div class="input-label">Raw Commentary Input <span class="hint">— one ball per line, any format</span></div>
+          <div class="paste-area">
+            <textarea class="field xl" id="raw-comm" placeholder="Paste ball-by-ball commentary here. Any format works:
+
+0.1 Dube to Farhan, no run. Back of length, shapes away. Farhan stabs at it.
+0.2 Dube to Farhan, no run. Full outside off, skids on. Caught on crease.
+0.3 Dube to Farhan, SIX. Short ball, pulled over midwicket. Massive hit!
+1.1 Bumrah to Rizwan, OUT. Caught behind! Rizwan 4(8). Bumrah strikes early."></textarea>
+            <div class="paste-hint">supports any format</div>
+          </div>
+        </div>
+
         <div class="btn-row">
           <button class="parse-btn" id="parse-btn" onclick="parseCommentary()">
             <span id="parse-icon">✦</span> Parse with Claude
           </button>
           <button class="save-btn" id="save-comm-btn" onclick="saveCommentary()" style="display:none">💾 Save Commentary</button>
           <button class="act-btn ghost" style="padding:9px 14px;font-size:12px" onclick="manualAddBall()">+ Add ball manually</button>
+        </div>
+
+        <!-- Build All -->
+        <div style="background:rgba(198,241,53,.05);border:1px solid rgba(198,241,53,.2);border-radius:var(--r);padding:14px;margin-top:16px">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--lime);margin-bottom:3px">⚡ Auto-Build from Commentary</div>
+              <div style="font-size:11px;color:var(--t3)">Computes scorecard + momentum from all saved balls — no manual entry needed</div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="parse-btn" style="padding:8px 16px" onclick="buildScorecardFromComm()">📊 Scorecard</button>
+              <button class="parse-btn" style="padding:8px 16px" onclick="buildMomentumFromComm()">📈 Momentum</button>
+              <button class="save-btn" style="padding:8px 16px;background:var(--lime);color:#000" onclick="buildAll()">⚡ Build All</button>
+            </div>
+          </div>
+          <div id="build-status" style="font-size:11px;color:var(--t3);margin-top:8px;min-height:16px"></div>
         </div>
 
         <div id="comm-result" style="display:none">
@@ -494,6 +564,7 @@ pre.result-json{font-family:var(--fm);font-size:11px;color:var(--t2);line-height
           </div>
         </div>
       </div>
+
 
       <!-- ── SCORECARD TAB ── -->
       <div class="tab-page" id="tab-scorecard">
@@ -709,7 +780,7 @@ function setData(section, data)  { localStorage.setItem(storeKey(currentId,secti
 function clearData(section)      { localStorage.removeItem(storeKey(currentId,section)); refreshStoreDots(); refreshPreview(); }
 
 function refreshStoreDots(){
-  ['info','scorecard','commentary','impact','momentum','news'].forEach(s=>{
+  ['info','xi','commentary','scorecard','impact','momentum','news'].forEach(s=>{
     const el = document.getElementById('dot-'+s);
     if(el) el.className = 'store-dot' + (localStorage.getItem(storeKey(currentId,s)) ? ' saved' : '');
   });
@@ -794,6 +865,13 @@ function loadInfoFields(){
   if(!d) return;
   const fields = ['id','t1','c1','f1','t2','c2','f2','s1','ov1','s1note','s2','ov2','s2note','need','crr','rrr','l5','pship','batting','wp','status','fmt'];
   fields.forEach(f => { const el=document.getElementById('f-'+f); if(el&&d[f]!==undefined) el.value=d[f]; });
+  // Load toss
+  if(d.tossWinner){ const el=document.getElementById('f-toss-winner'); if(el) el.value=d.tossWinner; }
+  if(d.tossDecision){ const el=document.getElementById('f-toss-decision'); if(el) el.value=d.tossDecision; }
+  if(d.battingFirst){ const el=document.getElementById('f-batting-first'); if(el) el.value=d.battingFirst; }
+  // Update XI labels
+  const el1=document.getElementById('xi-t1-label'); if(el1) el1.textContent=(d.c1||d.t1||'TEAM 1').toUpperCase();
+  const el2=document.getElementById('xi-t2-label'); if(el2) el2.textContent=(d.c2||d.t2||'TEAM 2').toUpperCase();
 }
 
 function collectInfo(){
@@ -808,6 +886,10 @@ function collectInfo(){
     need:   v('f-need'), crr: v('f-crr'), rrr: v('f-rrr'),
     lastFive: v('f-l5'), pship: v('f-pship'), batting: v('f-batting'),
     winProb: v('f-wp'),
+    // Toss
+    tossWinner:   v('f-toss-winner'),
+    tossDecision: v('f-toss-decision'),
+    battingFirst: v('f-batting-first'),
   };
 }
 
@@ -836,23 +918,32 @@ async function parseCommentary(){
   icon.className = 'spin';
 
   const context = document.getElementById('comm-context').value||'cricket match';
-  const prompt = `You are a cricket commentary parser. Parse the following ball-by-ball commentary into a JSON array.
+  const inn = document.getElementById('comm-inn').value || '1';
+  const prompt = `You are an expert cricket commentary writer and data parser. Parse the following raw ball-by-ball commentary into a structured JSON array.
 
 Match context: ${context}
+Innings: ${inn}
 
-Return ONLY a valid JSON array — no markdown, no explanation, no backticks.
+CRITICAL RULES:
+1. Return ONLY a valid JSON array — no markdown, no backticks, no explanation.
+2. One object per ball/delivery.
+3. For the "n" field — write FRESH, ORIGINAL broadcast commentary in your own words. Do NOT copy the raw input. Imagine you are a professional commentator describing the ball with precision and flair.
+4. For "h", "a", "m" — these are completely different perspectives on the SAME ball.
+
 Each ball object must have exactly these fields:
-- ov: over.ball string (e.g. "16.3") — infer from sequence if not given
+- inn: ${inn} (integer)
+- ov: "over.ball" string e.g. "0.3" — infer from sequence if not shown
 - res: one of "six"|"four"|"wicket"|"dot"|"single"|"two"|"three"|"wide"|"noball"
-- btr: batsman short name (e.g. "De Kock")
-- bwl: bowler short name (e.g. "Milne")
-- runs: integer runs scored (0 for dot/wicket/wide, 1/2/3/4/6 otherwise)
-- n: neutral factual commentary (1-2 crisp sentences, broadcast style)
-- h: excited home-team fan reaction (partisan, emotional, 1 sentence)
-- a: away-team fan reaction (can be devastated or celebrating, 1 sentence)
-- m: internet meme-style humor (witty, irreverent, 1-2 sentences)
+- btr: batsman surname only (e.g. "Farhan")
+- bwl: bowler surname only (e.g. "Dube")
+- runs: integer (0 for dot/wicket/wide, actual runs otherwise)
+- dismissal: if wicket → full string e.g. "c Rohit b Dube 4(8)", else ""
+- n: YOUR OWN crisp broadcast commentary (1-2 sentences). Sharp, factual, present tense. Vary your vocabulary — never start two balls the same way.
+- h: passionate reaction from a fan of the BATTING team (excited if scoring, devastated if wicket)
+- a: reaction from a fan of the BOWLING team (opposite emotion to h)
+- m: witty internet meme-style comment. Irreverent, punchy, modern. Not just a pun — make it genuinely funny.
 
-Raw commentary:
+Raw commentary to parse:
 ${raw}`;
 
   try{
@@ -911,7 +1002,20 @@ function saveCommentary(){
   else final = [...existing, ...parsedComm];
   setData('commentary', final);
   flashSave('save-comm-btn');
-  toast(`${final.length} balls saved ✓`);
+
+  // Auto-rebuild scorecard from the full commentary set
+  const sc = computeScorecard(final);
+  setData('scorecard', sc);
+
+  // Show what was built
+  const inn1balls = final.filter(b=>+b.inn===1).length;
+  const inn2balls = final.filter(b=>+b.inn===2).length;
+  const el = document.getElementById('build-status');
+  if(el){
+    el.style.color = 'var(--lime)';
+    el.textContent = `✓ ${final.length} balls saved · Scorecard auto-built · Inn1: ${inn1balls} balls, Inn2: ${inn2balls} balls`;
+  }
+  toast(`${final.length} balls saved · Scorecard updated ✓`);
 }
 
 function manualAddBall(){
@@ -1201,6 +1305,235 @@ function saveNews(){
   toast('News saved ✓');
 }
 
+// ── PLAYING XI ────────────────────────────────────────────────────────────────
+function addXIRow(team, data={}){
+  const container = document.getElementById('xi-team'+team);
+  const div = document.createElement('div');
+  div.style = 'display:flex;gap:6px;margin-bottom:5px;align-items:center';
+  const roles = ['BAT','BOWL','WK-BAT','AR','WK','BOWL-AR'];
+  div.innerHTML = `
+    <input class="field" style="flex:1;padding:6px 8px" placeholder="Player name" value="${data.name||''}">
+    <select class="field" style="width:90px;padding:6px 6px">
+      ${roles.map(r=>`<option ${(data.role||'BAT')===r?'selected':''}>${r}</option>`).join('')}
+    </select>
+    <label style="display:flex;align-items:center;gap:3px;font-size:10px;color:var(--t3);white-space:nowrap">
+      <input type="checkbox" ${data.isCaptain?'checked':''} style="width:auto"> C
+    </label>
+    <label style="display:flex;align-items:center;gap:3px;font-size:10px;color:var(--t3);white-space:nowrap">
+      <input type="checkbox" ${data.isKeeper?'checked':''} style="width:auto"> WK
+    </label>
+    <button class="del-btn" onclick="this.closest('div').remove()">✕</button>`;
+  container.appendChild(div);
+}
+
+function collectXI(team){
+  return Array.from(document.getElementById('xi-team'+team).querySelectorAll('div')).map(row=>{
+    const inputs = row.querySelectorAll('input,select');
+    return {
+      name: inputs[0]?.value?.trim()||'',
+      role: inputs[1]?.value||'BAT',
+      isCaptain: inputs[2]?.checked||false,
+      isKeeper: inputs[3]?.checked||false
+    };
+  }).filter(p=>p.name);
+}
+
+function saveXI(){
+  const xi = {team1: collectXI(1), team2: collectXI(2)};
+  setData('xi', xi);
+  // Update XI label with team names
+  const info = getData('info');
+  if(info){
+    const el1=document.getElementById('xi-t1-label'); if(el1) el1.textContent=(info.c1||info.t1||'TEAM 1').toUpperCase();
+    const el2=document.getElementById('xi-t2-label'); if(el2) el2.textContent=(info.c2||info.t2||'TEAM 2').toUpperCase();
+  }
+  toast('Playing XI saved ✓');
+}
+
+function loadXIFields(){
+  const d = getData('xi');
+  if(!d) return;
+  document.getElementById('xi-team1').innerHTML='';
+  document.getElementById('xi-team2').innerHTML='';
+  (d.team1||[]).forEach(p=>addXIRow(1,p));
+  (d.team2||[]).forEach(p=>addXIRow(2,p));
+}
+
+// ── COMPUTE SCORECARD FROM COMMENTARY ─────────────────────────────────────────
+// Pure function — reads saved commentary, computes scorecard for both innings.
+// Does NOT require manual entry — commentary balls are the sole input.
+function computeScorecard(balls){
+  const result = {};
+  [1,2].forEach(inn=>{
+    const innBalls = balls.filter(b=>+b.inn===inn);
+    if(!innBalls.length){ result[inn]={sum:{score:'—',ov:'0.0',extras:0,rr:0,highest:'',pship:''},bat:[],bowl:[]}; return; }
+
+    const batters={}, bowlers={};
+    let totalRuns=0, totalBalls=0, totalWickets=0, extras=0;
+
+    innBalls.forEach(b=>{
+      const isExtra = b.res==='wide'||b.res==='noball';
+      // Batter
+      if(b.btr){
+        if(!batters[b.btr]) batters[b.btr]={n:b.btr,r:0,b:0,f:0,s:0,dis:'not out',out:false};
+        if(!isExtra && b.res!=='wicket') batters[b.btr].r += (b.runs||0);
+        if(!isExtra) batters[b.btr].b += 1;
+        if(b.res==='four') batters[b.btr].f += 1;
+        if(b.res==='six')  batters[b.btr].s += 1;
+        if(b.res==='wicket'){ batters[b.btr].out=true; batters[b.btr].dis=b.dismissal||'out'; }
+      }
+      // Bowler
+      if(b.bwl){
+        if(!bowlers[b.bwl]) bowlers[b.bwl]={n:b.bwl,balls:0,r:0,w:0,dot:0,wd:0,m:0};
+        bowlers[b.bwl].r += (b.runs||0);
+        if(b.res==='wide') { bowlers[b.bwl].wd+=1; bowlers[b.bwl].r+=1; extras++; }
+        else { bowlers[b.bwl].balls+=1; if(b.res==='dot') bowlers[b.bwl].dot+=1; }
+        if(b.res==='wicket') bowlers[b.bwl].w+=1;
+      }
+      if(!isExtra){ totalBalls++; totalRuns+=(b.runs||0); }
+      else extras++;
+      if(b.res==='wicket') totalWickets++;
+    });
+
+    const ovFull=Math.floor(totalBalls/6), ovBall=totalBalls%6;
+    const rr = totalBalls>0 ? +((totalRuns/totalBalls)*6).toFixed(2) : 0;
+    const batList = Object.values(batters).map(b=>({
+      ...b, sr: b.b>0 ? +((b.r/b.b)*100).toFixed(1) : 0
+    }));
+    const bowlList = Object.values(bowlers).map(b=>({
+      n:b.n, o:`${Math.floor(b.balls/6)}.${b.balls%6}`,
+      m:0, r:b.r, w:b.w,
+      eco: b.balls>0 ? +((b.r/b.balls)*6).toFixed(2) : 0,
+      dot:b.dot, wd:b.wd
+    }));
+    result[inn]={
+      sum:{score:`${totalRuns}/${totalWickets}`,ov:`${ovFull}.${ovBall}`,extras,rr,highest:'',pship:''},
+      bat:batList, bowl:bowlList
+    };
+  });
+  return result;
+}
+
+function buildScorecardFromComm(){
+  const balls = getData('commentary');
+  if(!balls||!balls.length){ toast('No commentary saved yet','err'); return; }
+  const sc = computeScorecard(balls);
+  setData('scorecard', sc);
+  // Update status
+  const el=document.getElementById('build-status');
+  if(el) el.textContent=`✓ Scorecard built — Inn1: ${sc[1]?.bat?.length||0} batters, Inn2: ${sc[2]?.bat?.length||0} batters`;
+  toast('Scorecard built from commentary ✓');
+}
+
+// ── COMPUTE MOMENTUM FROM COMMENTARY ──────────────────────────────────────────
+function computeMomentum(balls, target=0){
+  const result={inn1:null, inn2:null, wf1:[], wf2:[]};
+  [1,2].forEach(inn=>{
+    const innBalls = balls.filter(b=>+b.inn===inn);
+    if(!innBalls.length) return;
+
+    // Group by over number
+    const overMap={};
+    innBalls.forEach(b=>{
+      const ov=Math.floor(parseFloat(b.ov)||0);
+      if(!overMap[ov]) overMap[ov]={r:0,wkts:[],boundaries:0,dots:0,balls:0};
+      overMap[ov].r+=(b.runs||0);
+      if(b.res==='wicket') overMap[ov].wkts.push(b.btr||'');
+      if(b.res==='four'||b.res==='six') overMap[ov].boundaries++;
+      if(b.res==='dot') overMap[ov].dots++;
+      if(b.res!=='wide'&&b.res!=='noball') overMap[ov].balls++;
+    });
+
+    const overs=Object.keys(overMap).map(Number).sort((a,b)=>a-b);
+    const cumScores=[0];
+    const data=[];
+    let cumRuns=0, cumBalls=0;
+
+    overs.forEach(ov=>{
+      const o=overMap[ov];
+      cumRuns+=o.r;
+      cumBalls+=o.balls;
+      cumScores.push(cumRuns);
+
+      // Over type
+      let type='normal';
+      if(o.wkts.length>0) type='collapse';
+      else if(o.boundaries>=2) type='boundary_burst';
+      else if(o.dots>=4) type='dot_cluster';
+
+      // Win probability estimate
+      let wp=50;
+      if(inn===2&&target>0){
+        const ballsUsed=cumBalls, ballsTotal=120; // T20 default
+        const needed=target-cumRuns;
+        const ballsLeft=ballsTotal-ballsUsed;
+        if(ballsLeft<=0){ wp=needed<=0?95:5; }
+        else{
+          const rrr=(needed/ballsLeft)*6;
+          const crr=ballsUsed>0?(cumRuns/ballsUsed)*6:0;
+          wp=Math.max(5,Math.min(95,Math.round(50+(crr-rrr)*5)));
+        }
+      } else if(inn===1){
+        // First innings: estimate based on run rate vs par (8.5 rpo T20)
+        const crr=cumBalls>0?(cumRuns/cumBalls)*6:0;
+        wp=Math.max(20,Math.min(80,Math.round(50+(crr-8.5)*3)));
+      }
+
+      data.push({o:ov+1,r:o.r,wp,type,wkt:o.wkts,lmk:null,msd:null});
+
+      // Wicket falls
+      if(o.wkts.length){
+        const wfArr = inn===1?result.wf1:result.wf2;
+        o.wkts.forEach(w=>wfArr.push([ov+1,cumRuns,w.split(' ')[0]||w]));
+      }
+    });
+
+    const innData={
+      flag:'',
+      colHi: inn===1?'#c6f135':'#00e5c8',
+      col:   inn===1?'#8fb82a':'#009e8d',
+      wp0:50, cumScores, data
+    };
+    if(inn===2&&target>0) innData.target=target;
+    if(inn===1) result.inn1=innData;
+    else result.inn2=innData;
+  });
+
+  // If no inn2, create empty placeholder
+  if(!result.inn2) result.inn2={flag:'',colHi:'#00e5c8',col:'#009e8d',wp0:50,target:target||0,cumScores:[0],data:[]};
+  if(!result.inn1) result.inn1={flag:'',colHi:'#c6f135',col:'#8fb82a',wp0:50,cumScores:[0],data:[]};
+  return result;
+}
+
+function buildMomentumFromComm(){
+  const balls=getData('commentary');
+  if(!balls||!balls.length){ toast('No commentary saved yet','err'); return; }
+  const info=getData('info');
+  // Get target from scorecard inn1 score if available
+  const sc=getData('scorecard');
+  let target=0;
+  if(sc&&sc[1]&&sc[1].sum&&sc[1].sum.score){
+    const parts=sc[1].sum.score.split('/');
+    target=parseInt(parts[0]||0)+1;
+  }
+  const mom=computeMomentum(balls,target);
+  setData('momentum',mom);
+  const el=document.getElementById('build-status');
+  const ov1=(mom.inn1?.data||[]).length, ov2=(mom.inn2?.data||[]).length;
+  if(el) el.textContent=`✓ Momentum built — Inn1: ${ov1} overs, Inn2: ${ov2} overs${target?`, target: ${target}`:''}`;
+  toast('Momentum built from commentary ✓');
+}
+
+function buildAll(){
+  const balls=getData('commentary');
+  if(!balls||!balls.length){ toast('No commentary saved yet — parse and save commentary first','err'); return; }
+  buildScorecardFromComm();
+  buildMomentumFromComm();
+  const el=document.getElementById('build-status');
+  if(el) el.style.color='var(--lime)';
+  toast('Scorecard + Momentum built ✓');
+}
+
 // ── SAVE ALL ──────────────────────────────────────────────────────────────────
 function saveAll(){
   saveInfo();
@@ -1232,32 +1565,42 @@ function exportJSON(){
 // ── PREVIEW ───────────────────────────────────────────────────────────────────
 function refreshPreview(){
   const body = document.getElementById('preview-body');
-  const sections = ['info','scorecard','commentary','impact','momentum','news'];
+  const sections = ['info','xi','commentary','scorecard','momentum','news'];
   body.innerHTML = sections.map(s=>{
     const d = getData(s);
     const stored = !!d;
     let content='';
     if(s==='info'&&d){
-      content=`<div class="pv-score">${d.t1||'?'} <span style="font-size:16px;color:var(--t3)">vs</span> ${d.t2||'?'}</div>
-      <div class="pv-team">${d.s1||'—'} · ${d.s2||'—'}</div>
-      <div style="font-size:11px;color:var(--amber);margin-top:4px">${d.need||''}</div>`;
+      const toss = d.tossWinner ? `${d.tossWinner==='team1'?d.t1:d.t2} won toss, elected to ${d.tossDecision}` : 'Toss pending';
+      content=`<div class="pv-score">${d.t1||'?'} <span style="font-size:14px;color:var(--t3)">vs</span> ${d.t2||'?'}</div>
+      <div style="font-size:10px;color:var(--amber);margin-top:3px">${toss}</div>
+      <div style="font-size:10px;color:var(--t3);margin-top:2px">${d.need||''}</div>`;
+    } else if(s==='xi'&&d){
+      const t1 = (d.team1||[]).filter(p=>p.name).length;
+      const t2 = (d.team2||[]).filter(p=>p.name).length;
+      const info = getData('info');
+      content=`<div style="font-size:11px;color:var(--t2)">${info?.t1||'Team 1'}: ${t1}/11 · ${info?.t2||'Team 2'}: ${t2}/11</div>`;
     } else if(s==='commentary'&&d){
-      const balls=d.slice(0,8);
+      const inn1 = d.filter(b=>+b.inn===1), inn2 = d.filter(b=>+b.inn===2);
+      const balls = d.slice(0,10);
       content=`<div class="ball-dots">${balls.map(b=>`<div class="ball-dot ${b.res}" title="${b.ov} ${b.btr}">${b.res==='six'?'6':b.res==='four'?'4':b.res==='wicket'?'W':b.res==='dot'?'•':b.runs||'?'}</div>`).join('')}</div>
-      <div style="font-size:10px;color:var(--t3);margin-top:4px">${d.length} balls stored</div>`;
+      <div style="font-size:10px;color:var(--t3);margin-top:4px">Inn1: ${inn1.length} balls · Inn2: ${inn2.length} balls · Total: ${d.length}</div>`;
     } else if(s==='scorecard'&&d){
       const i1=d[1],i2=d[2];
-      content=`<div style="font-family:var(--fm);font-size:11px;color:var(--t2)">Inn1: ${i1?.sum?.score||'—'} (${(i1?.bat||[]).length} batters, ${(i1?.bowl||[]).length} bowlers)<br>Inn2: ${i2?.sum?.score||'—'} (${(i2?.bat||[]).length} batters, ${(i2?.bowl||[]).length} bowlers)</div>`;
-    } else if(s==='impact'&&d){
-      content=`<div style="font-size:11px;color:var(--t2)">${d.map(t=>t.players.map(p=>`${p.name} (${p.imp})`).join(', ')).join(' · ')}</div>`;
+      const label = i1?.sum?.score!=='—' ? `auto-computed` : 'manual';
+      content=`<div style="font-family:var(--fm);font-size:11px;color:var(--t2)">
+        Inn1: <span style="color:var(--lime)">${i1?.sum?.score||'—'}</span> · ${(i1?.bat||[]).length} batters · ${(i1?.bowl||[]).length} bowlers<br>
+        Inn2: <span style="color:var(--cyan)">${i2?.sum?.score||'—'}</span> · ${(i2?.bat||[]).length} batters · ${(i2?.bowl||[]).length} bowlers
+        <span style="color:var(--t4);font-size:9px;margin-left:4px">(${label})</span>
+      </div>`;
     } else if(s==='momentum'&&d){
       const ov1=(d.inn1?.data||[]).length, ov2=(d.inn2?.data||[]).length;
-      content=`<div style="font-family:var(--fm);font-size:11px;color:var(--t2)">Inn1: ${ov1} overs · Inn2: ${ov2} overs</div>`;
+      content=`<div style="font-family:var(--fm);font-size:11px;color:var(--t2)">Inn1: ${ov1} overs · Inn2: ${ov2} overs${d.inn2?.target?` · Target: ${d.inn2.target}`:''}</div>`;
     } else if(s==='news'&&d){
       content=`<div style="font-size:11px;color:var(--t2)">${d.length} headlines</div>`;
     }
     return `<div class="pv-section">
-      <div class="pv-label">${s.toUpperCase()} <span class="pv-status ${stored?'stored':'default'}">${stored?'STORED':'default data'}</span></div>
+      <div class="pv-label">${s==='xi'?'PLAYING XI':s.toUpperCase()} <span class="pv-status ${stored?'stored':'default'}">${stored?'STORED':'no data'}</span></div>
       ${content?`<div class="pv-card">${content}</div>`:'<div class="pv-empty">No data yet</div>'}
     </div><hr class="pv-divider">`;
   }).join('');
@@ -1287,11 +1630,14 @@ addBatRow(1); addBatRow(2);
 addBowlRow(1); addBowlRow(2);
 addOverRow(1); addOverRow(2);
 addNewsItem();
+// Default XI rows (11 per team)
+for(let i=0;i<11;i++){ addXIRow(1); addXIRow(2); }
 // Load any existing saved data
 loadInfoFields();
 loadScorecardFields();
 loadMomentumFields();
 loadNewsFields();
+loadXIFields();
 const savedComm = getData('commentary');
 if(savedComm){ parsedComm=savedComm; showCommPreview(savedComm); document.getElementById('save-comm-btn').style.display='flex'; }
 updateCommCount();
