@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>cricAI — Live Cricket Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07070f; --bg2:#0e0e1c; --bg3:#181830; --bg4:#21213a;
+  --lime:#c6f135; --cyan:#00e5c8; --red:#ff3b5c; --amber:#ffb830; --purple:#9b6dff;
+  --t1:#f0f0f8; --t2:#c8c8e4; --t3:#8888aa; --t4:#4a4a68;
+  --b1:rgba(255,255,255,.12); --b2:rgba(255,255,255,.22);
+  --r:12px; --rsm:8px;
+  --fd:'Bebas Neue',sans-serif; --fb:'DM Sans',system-ui,sans-serif; --fm:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--t1);font-family:var(--fb);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:4px}
+
+/* ── TICKER ── */
+.ticker{background:var(--lime);height:30px;display:flex;align-items:center;overflow:hidden}
+.ticker-label{background:#000;color:var(--lime);font-family:var(--fd);font-size:12px;letter-spacing:1.5px;padding:0 14px;height:100%;display:flex;align-items:center;flex-shrink:0}
+.ticker-track{display:flex;animation:tick 50s linear infinite;white-space:nowrap}
+.ticker-item{font-size:11px;font-weight:500;color:#000;padding:0 22px;border-right:1px solid rgba(0,0,0,.12);display:flex;align-items:center;gap:6px;height:30px}
+.tdot{width:5px;height:5px;border-radius:50%;background:var(--red);animation:pulse 1s infinite;flex-shrink:0}
+@keyframes tick{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* ── NAV ── */
+.nav{background:rgba(7,7,15,.96);border-bottom:1px solid var(--b1);position:sticky;top:0;z-index:300;backdrop-filter:blur(24px)}
+.nav-inner{max-width:1380px;margin:0 auto;padding:0 20px;height:54px;display:flex;align-items:center;gap:24px}
+.logo{font-family:var(--fd);font-size:24px;letter-spacing:3px;flex-shrink:0;display:flex;align-items:baseline;gap:2px;cursor:pointer}
+.logo b{color:var(--t1)}
+.logo em{color:var(--lime);font-style:normal}
+.logo s{color:var(--t3);font-size:11px;font-family:var(--fb);margin-left:6px;font-weight:400;text-decoration:none}
+.nav-links{display:flex;gap:2px;flex:1;overflow-x:auto;scrollbar-width:none}
+.nav-links::-webkit-scrollbar{display:none}
+.nl{background:none;border:none;color:var(--t3);font-family:var(--fb);font-size:13px;font-weight:500;padding:6px 14px;border-radius:var(--rsm);cursor:pointer;white-space:nowrap;transition:all .15s}
+.nl:hover{color:var(--t2);background:var(--bg3)}
+.nl.on{color:#000;background:var(--lime);font-weight:700}
+.nav-r{display:flex;gap:8px;align-items:center;flex-shrink:0}
+.ico-btn{width:32px;height:32px;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--rsm);color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s}
+.ico-btn:hover{border-color:var(--b2);color:var(--t1)}
+
+/* ── PAGE ── */
+.page{max-width:1380px;margin:0 auto;padding:0 20px}
+
+/* ── MATCH CARDS ROW ── */
+.match-row{padding:18px 0 0}
+.match-row-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.mrow-title{font-family:var(--fd);font-size:16px;letter-spacing:2px;color:var(--t2)}
+.mrow-title span{color:var(--lime)}
+.see-all{font-size:11px;color:var(--t3);font-weight:600;cursor:pointer;background:none;border:none;font-family:var(--fb);transition:color .15s}
+.see-all:hover{color:var(--lime)}
+
+/* Horizontal scroll cards */
+.cards-scroll{display:flex;gap:12px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.cards-scroll::-webkit-scrollbar{display:none}
+
+/* Match card — compact */
+.mcard{background:var(--bg2);border:1px solid var(--b1);border-top:2.5px solid var(--bg4);border-radius:12px;padding:14px 16px;cursor:pointer;transition:border-color .2s,transform .15s;flex-shrink:0;width:260px;display:flex;flex-direction:column;gap:0;text-decoration:none}
+.mcard:hover{border-color:var(--b2);transform:translateY(-2px)}
+.mcard.live{border-top-color:var(--red)}
+.mcard.upcoming{border-top-color:var(--bg4)}
+.mcard.result{border-top-color:rgba(255,255,255,.16)}
+.mc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.mc-badge{font-size:8px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:2px 7px;border-radius:3px;display:flex;align-items:center;gap:4px}
+.mc-badge.live{background:rgba(255,59,92,.15);color:var(--red)}
+.mc-badge.live::before{content:'';width:4px;height:4px;background:var(--red);border-radius:50%;animation:pulse 1s infinite}
+.mc-badge.upcoming{background:rgba(255,184,48,.12);color:var(--amber)}
+.mc-badge.result{background:rgba(255,255,255,.07);color:var(--t3)}
+.mc-fmt{font-size:9px;color:var(--t3);font-weight:700;letter-spacing:.8px;text-transform:uppercase}
+.mc-teams{display:flex;flex-direction:column;gap:7px;margin-bottom:9px}
+.mc-team{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mc-flag{font-size:14px;line-height:1;flex-shrink:0}
+.mc-name{font-size:13px;font-weight:600;color:var(--t1);flex:1}
+.mc-score{font-family:var(--fm);font-size:12px;color:var(--lime);font-weight:500}
+.mc-score.dim{color:var(--t2)}
+.mc-footer{font-size:10px;color:var(--t2);border-top:1px solid var(--b1);padding-top:8px;margin-top:auto;line-height:1.5}
+.mc-cta{font-size:10px;color:var(--lime);font-weight:700;margin-top:4px;display:flex;align-items:center;gap:3px}
+.mc-cta::after{content:'→';font-size:11px}
+
+/* ── MAIN CONTENT AREA ── */
+.content-area{display:grid;grid-template-columns:1fr 320px;gap:20px;margin-top:22px}
+@media(max-width:1000px){.content-area{grid-template-columns:1fr}}
+
+/* ── LEFT CONTENT ── */
+.left-content{}
+
+/* Content tabs */
+.content-tabs{display:flex;gap:0;border-bottom:1px solid var(--b1);margin-bottom:20px}
+.ctab{background:none;border:none;border-bottom:2px solid transparent;color:var(--t3);font-family:var(--fb);font-size:13px;font-weight:600;padding:8px 18px;cursor:pointer;white-space:nowrap;transition:all .15s;margin-bottom:-1px;letter-spacing:.2px}
+.ctab:hover{color:var(--t2)}
+.ctab.on{color:var(--lime);border-bottom-color:var(--lime)}
+
+.ctab-content{display:none}
+.ctab-content.on{display:block}
+
+/* ── FEATURED: AI MATCH REPORT ── */
+.ai-report{background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid var(--b1);border-radius:14px;padding:20px 22px;margin-bottom:20px;position:relative;overflow:hidden}
+.ai-report::before{content:'';position:absolute;top:-40px;right:-40px;width:180px;height:180px;background:radial-gradient(circle,rgba(198,241,53,.05) 0%,transparent 65%);pointer-events:none}
+.air-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(198,241,53,.12);border:1px solid rgba(198,241,53,.28);border-radius:4px;padding:3px 10px;font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--lime);margin-bottom:12px}
+.air-match{font-size:10px;color:var(--t3);font-family:var(--fm);margin-bottom:8px;font-weight:500}
+.air-headline{font-family:var(--fd);font-size:26px;letter-spacing:1.5px;line-height:1.15;color:var(--t1);margin-bottom:10px}
+.air-body{font-size:13px;line-height:1.75;color:var(--t2);margin-bottom:14px}
+.air-stats{display:flex;gap:16px;flex-wrap:wrap;padding-top:14px;border-top:1px solid var(--b1)}
+.air-stat{display:flex;flex-direction:column;gap:2px}
+.air-stat-v{font-family:var(--fm);font-size:14px;font-weight:600;color:var(--lime)}
+.air-stat-l{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;font-weight:600}
+.air-gen-btn{background:var(--lime);border:none;border-radius:var(--rsm);color:#000;font-size:12px;font-weight:700;padding:7px 16px;cursor:pointer;font-family:var(--fb);transition:opacity .15s;display:flex;align-items:center;gap:6px;margin-top:12px}
+.air-gen-btn:hover{opacity:.85}
+.air-gen-btn.loading{opacity:.6;pointer-events:none}
+
+/* Article grid */
+.article-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+@media(max-width:640px){.article-grid{grid-template-columns:1fr}}
+
+.acard{background:var(--bg2);border:1px solid var(--b1);border-radius:12px;overflow:hidden;cursor:pointer;transition:border-color .2s,transform .15s;display:flex;flex-direction:column}
+.acard:hover{border-color:var(--b2);transform:translateY(-2px)}
+.acard.featured{grid-column:1/-1;flex-direction:row}
+.acard-img{height:130px;background:var(--bg3);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;flex-shrink:0}
+.acard.featured .acard-img{width:200px;height:auto;min-height:130px}
+.acard-bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:64px;letter-spacing:4px;color:var(--bg4);user-select:none}
+.acard-icon{position:relative;font-size:34px;z-index:1}
+.acard-tag{position:absolute;bottom:8px;left:8px;background:var(--lime);color:#000;font-size:8px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:2px 8px;border-radius:3px}
+.acard-body{padding:14px;display:flex;flex-direction:column;flex:1}
+.acard-cat{font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3);margin-bottom:5px}
+.acard-hl{font-weight:700;font-size:13px;line-height:1.4;color:var(--t1);margin-bottom:6px;flex:1}
+.acard-meta{font-size:10px;color:var(--t3);display:flex;gap:8px;align-items:center}
+.acard-meta span{color:var(--t2)}
+
+/* Series list */
+.series-list{display:flex;flex-direction:column;gap:10px}
+.scard{background:var(--bg2);border:1px solid var(--b1);border-radius:12px;padding:16px 18px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:border-color .15s}
+.scard:hover{border-color:var(--b2)}
+.scard-flags{display:flex;gap:-4px;font-size:20px;flex-shrink:0}
+.scard-info{flex:1}
+.scard-name{font-weight:600;font-size:14px;color:var(--t1);margin-bottom:3px}
+.scard-sub{font-size:11px;color:var(--t2)}
+.scard-badge{font-size:9px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;padding:3px 8px;border-radius:4px;flex-shrink:0}
+.scard-badge.live{background:rgba(255,59,92,.14);color:var(--red)}
+.scard-badge.upcoming{background:rgba(255,184,48,.12);color:var(--amber)}
+.scard-badge.ended{background:rgba(255,255,255,.07);color:var(--t3)}
+
+/* Teams grid */
+.teams-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.tcard{background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:14px 12px;text-align:center;cursor:pointer;transition:border-color .15s,transform .15s}
+.tcard:hover{border-color:var(--b2);transform:translateY(-2px)}
+.tcard-flag{font-size:28px;line-height:1;margin-bottom:7px}
+.tcard-name{font-size:12px;font-weight:600;color:var(--t1);margin-bottom:2px}
+.tcard-rank{font-size:9px;color:var(--t3);font-family:var(--fm);font-weight:500}
+
+/* ── RIGHT SIDEBAR ── */
+.right-sidebar{display:flex;flex-direction:column;gap:16px}
+
+.sidebar-box{background:var(--bg2);border:1px solid var(--b1);border-radius:12px;overflow:hidden}
+.sb-hdr{padding:12px 16px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between}
+.sb-title{font-family:var(--fd);font-size:13px;letter-spacing:2px;color:var(--t1)}
+.sb-more{font-size:10px;color:var(--lime);cursor:pointer;font-weight:700;background:none;border:none;font-family:var(--fb)}
+
+/* Rankings widget */
+.ranking-list{padding:8px 0}
+.rk-item{display:flex;align-items:center;gap:10px;padding:7px 16px;transition:background .15s;cursor:pointer}
+.rk-item:hover{background:var(--bg3)}
+.rk-num{font-family:var(--fm);font-size:12px;color:var(--t3);font-weight:500;width:18px;flex-shrink:0}
+.rk-flag{font-size:14px;line-height:1;flex-shrink:0}
+.rk-name{font-size:12px;font-weight:600;color:var(--t1);flex:1}
+.rk-pts{font-family:var(--fm);font-size:11px;color:var(--lime);font-weight:600}
+.rk-chg{font-size:9px;font-weight:700}
+.rk-chg.up{color:var(--lime)}
+.rk-chg.dn{color:var(--red)}
+.rk-chg.eq{color:var(--t3)}
+
+/* Trending */
+.trending-list{padding:8px 0}
+.tr-item{display:flex;align-items:flex-start;gap:10px;padding:8px 16px;cursor:pointer;transition:background .15s;border-bottom:1px solid rgba(255,255,255,.05)}
+.tr-item:last-child{border-bottom:none}
+.tr-item:hover{background:var(--bg3)}
+.tr-num{font-family:var(--fd);font-size:22px;letter-spacing:1px;color:var(--b1);flex-shrink:0;line-height:1;margin-top:1px}
+.tr-body{flex:1}
+.tr-hl{font-size:12px;font-weight:600;color:var(--t1);line-height:1.4;margin-bottom:3px}
+.tr-meta{font-size:10px;color:var(--t3)}
+
+/* Poll widget */
+.poll-box{padding:14px 16px}
+.poll-q{font-size:12px;font-weight:600;color:var(--t1);line-height:1.5;margin-bottom:12px}
+.poll-opts{display:flex;flex-direction:column;gap:6px}
+.poll-opt{background:var(--bg3);border:1px solid var(--b1);border-radius:8px;padding:8px 12px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--t2);font-weight:500;position:relative;overflow:hidden}
+.poll-opt:hover{border-color:rgba(198,241,53,.3);color:var(--lime)}
+.poll-opt.voted{border-color:rgba(198,241,53,.4);color:var(--t1)}
+.poll-bar{position:absolute;left:0;top:0;bottom:0;background:rgba(198,241,53,.08);transition:width .6s ease;border-radius:7px}
+.poll-pct{font-family:var(--fm);font-size:11px;font-weight:700;color:var(--lime);position:relative}
+.poll-total{font-size:10px;color:var(--t3);margin-top:8px;text-align:right;font-family:var(--fm)}
+
+/* AI insight strip */
+.ai-strip{background:linear-gradient(90deg,rgba(198,241,53,.08),rgba(198,241,53,.03));border:1px solid rgba(198,241,53,.2);border-radius:10px;padding:12px 14px;display:flex;gap:10px;align-items:flex-start;margin-bottom:16px}
+.ai-strip-icon{font-size:20px;flex-shrink:0;margin-top:1px}
+.ai-strip-body{flex:1}
+.ai-strip-lbl{font-size:8px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--lime);margin-bottom:4px}
+.ai-strip-txt{font-size:12px;color:var(--t2);line-height:1.6}
+
+/* ── FOOTER SPACER ── */
+
+
+@media(max-width:768px){.content-area{grid-template-columns:1fr}.right-sidebar{display:none}}
+@media(max-width:480px){.page{padding:0 12px}.article-grid{grid-template-columns:1fr}.acard.featured{flex-direction:column}.acard.featured .acard-img{width:100%;height:130px}}
+
+:root{
+  /* ── Dark zones (nav, score strip, sidebar, footer) ── */
+  --dk:#000; --dk2:#0d0d0d; --dk3:#1a1a1a; --dk4:#252525; --dk5:#2e2e2e;
+
+  /* ── Light zones (tables, cards, content) ── */
+  --lt:#fff; --lt2:#f8f8f8; --lt3:#f2f2f2; --lt4:#e8e8e8; --lt5:#d8d8d8;
+
+  /* ── Page shell ── */
+  --pg:#e9e9e9;
+
+  /* ── Brand: navy replaces lime everywhere ── */
+  --navy:#1d4ed8;        /* primary brand — NBA blue          */
+  --navy-light:#3b82f6;  /* hover / lighter variant           */
+  --navy-dark:#1e3a8a;   /* deep navy for text on light bg    */
+  --navy-bg:rgba(29,78,216,.12); /* subtle navy fill          */
+  --navy-bd:rgba(29,78,216,.35); /* navy border               */
+
+  /* ── Functional colours ── */
+  --red:#dc2626; --amber:#d97706; --cyan:#0891b2; --green:#15803d;
+
+  /* ── Dark zone text ── */
+  --dt1:#ffffff; --dt2:#a3a3a3; --dt3:#525252; --dt4:#2a2a2a;
+  --db1:rgba(255,255,255,.12); --db2:rgba(255,255,255,.22);
+
+  /* ── Light zone text ── */
+  --lt-t1:#000000; --lt-t2:#404040; --lt-t3:#737373; --lt-t4:#a8a8a8;
+  --lt-b1:#e5e5e5; --lt-b2:#c8c8c8;
+
+  /* ── Type ── */
+  --fd:'Bebas Neue',sans-serif;
+  --fb:'DM Sans',system-ui,sans-serif;
+  --fm:'JetBrains Mono',monospace;
+  --r:12px; --rsm:8px;
+}
+
+/* ═══ SHARED SHELL — nav, ticker, footer, settings ═══ */
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--pg);color:var(--lt-t1);font-family:var(--fb);font-size:15px;
+     line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--lt4);border-radius:4px}
+
+/* TICKER — navy bar */
+.ticker{background:var(--navy);height:28px;display:flex;align-items:center;overflow:hidden}
+.ticker-label{background:#000;color:var(--navy-light);font-family:var(--fd);font-size:11px;
+  letter-spacing:1.5px;padding:0 14px;height:100%;display:flex;align-items:center;flex-shrink:0}
+.ticker-track{display:flex;animation:ticker-scroll 50s linear infinite;white-space:nowrap}
+.ticker-item{font-size:11px;font-weight:600;color:#fff;padding:0 20px;
+  border-right:1px solid rgba(255,255,255,.15);display:flex;align-items:center;gap:6px;height:28px}
+.tdot{width:5px;height:5px;border-radius:50%;background:#fca5a5;animation:pulse 1s infinite;flex-shrink:0}
+@keyframes ticker-scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* NAV — pure black, underline tabs */
+.cricnav{background:#000;border-bottom:2px solid var(--navy);position:sticky;top:0;z-index:300}
+.cricnav-inner{max-width:1440px;margin:0 auto;padding:0 20px;height:52px;
+  display:flex;align-items:center}
+.cricnav-logo{font-family:var(--fd);font-size:22px;letter-spacing:3px;
+  flex-shrink:0;display:flex;align-items:baseline;gap:1px;
+  text-decoration:none;margin-right:24px;cursor:pointer}
+.cricnav-logo b{color:#fff}
+.cricnav-logo em{color:var(--navy-light);font-style:normal}
+.cricnav-logo s{color:#444;font-size:10px;font-family:var(--fb);margin-left:5px;
+  font-weight:400;text-decoration:none}
+.cricnav-tabs{display:flex;flex:1;height:52px;overflow-x:auto;scrollbar-width:none}
+.cricnav-tabs::-webkit-scrollbar{display:none}
+.crtab{background:none;border:none;border-bottom:3px solid transparent;
+  color:#666;font-family:var(--fb);font-size:12px;font-weight:600;
+  padding:0 14px;height:100%;cursor:pointer;white-space:nowrap;
+  transition:color .15s,border-color .15s;letter-spacing:.3px}
+.crtab:hover{color:#ccc;border-bottom-color:rgba(255,255,255,.2)}
+.crtab.active{color:#fff;border-bottom-color:var(--navy-light);font-weight:700}
+.cricnav-r{display:flex;gap:8px;align-items:center;flex-shrink:0;margin-left:16px}
+.cricnav-btn{width:30px;height:30px;background:#1a1a1a;border:1px solid #2a2a2a;
+  border-radius:6px;color:#666;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;font-size:13px;transition:all .15s}
+.cricnav-btn:hover{border-color:#444;color:#fff}
+
+/* SETTINGS MODAL */
+.cric-settings{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:900;
+  display:none;align-items:center;justify-content:center}
+.cric-settings.open{display:flex}
+.cric-settings-box{background:#fff;border-radius:16px;padding:26px;width:min(440px,90vw)}
+.cric-settings-title{font-family:var(--fd);font-size:20px;letter-spacing:2px;
+  color:#000;margin-bottom:18px}
+.cric-sfield{margin-bottom:14px}
+.cric-sfield label{display:block;font-size:9px;color:#888;text-transform:uppercase;
+  letter-spacing:1px;margin-bottom:5px;font-weight:800}
+.cric-sfield input{width:100%;background:#f2f2f2;border:1px solid #e5e5e5;
+  border-radius:6px;color:#000;font-size:13px;padding:8px 12px;
+  font-family:var(--fm);outline:none}
+.cric-sfield input:focus{border-color:var(--navy)}
+.cric-sbtn{background:var(--navy);border:none;border-radius:6px;color:#fff;
+  font-weight:700;font-size:13px;padding:9px 22px;cursor:pointer;font-family:var(--fb)}
+.cric-sbtn:hover{background:var(--navy-light)}
+
+/* FOOTER */
+.cricfooter{background:#000;padding:36px 0 24px;margin-top:0}
+.cricfooter-inner{max-width:1440px;margin:0 auto;padding:0 20px}
+.cricfooter-cols{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:28px;margin-bottom:28px}
+.cricfooter-col-title{font-size:9px;font-weight:800;letter-spacing:1.5px;
+  text-transform:uppercase;color:#444;margin-bottom:12px}
+a.cricfooter-link,span.cricfooter-link{display:block;font-size:12px;color:#555;
+  text-decoration:none;margin-bottom:7px;cursor:pointer;transition:color .15s}
+a.cricfooter-link:hover,span.cricfooter-link:hover{color:#888}
+.cricfooter-bottom{border-top:1px solid #1a1a1a;padding-top:16px;
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.cricfooter-copy{font-size:11px;color:#444}
+.cricfooter-links{display:flex;gap:18px;flex-wrap:wrap}
+.cricfooter-links a{font-size:11px;color:#444;text-decoration:none}
+.cricfooter-links a:hover{color:#666}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .cricfooter-cols{grid-template-columns:1fr 1fr}
+  .cricnav-logo s{display:none}
+}
+@media(max-width:600px){
+  .cricfooter-cols{grid-template-columns:1fr}
+  .cricnav-inner{padding:0 12px}
+  .crtab{padding:0 10px;font-size:11px}
+}
+
+/* ══ NBA/NAVY VISUAL OVERRIDES ══════════════════════
+   Dark zones: black  |  Content zones: white
+   Brand accent: --navy (#1d4ed8) replaces all greens
+═══════════════════════════════════════════════════ */
+
+/* ── SCORES / MATCH CARDS ── */
+.mc,.match-grid .mc{
+  background:#fff;border:none;border-top:3px solid #e5e5e5;
+  border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.mc:hover{box-shadow:0 4px 14px rgba(0,0,0,.14);transform:translateY(-2px)}
+.mc.live{border-top-color:var(--red)}
+.mc.upcoming{border-top-color:#ccc}
+.mc-fmt{color:#bbb}
+.mc-st.live{color:var(--red)}
+.mc-st.upcoming{color:var(--amber)}
+.mc-st.result{color:#bbb}
+.mc-tn{color:#000}
+.mc-sc{color:#000;font-weight:700}
+.mc-sc.dim{color:#bbb}
+.mc-note{color:#888}
+
+/* ── LANDING MATCH CARDS (mcard) ── */
+.mcard{background:#fff;border:none;border-top:3px solid #e5e5e5;border-radius:10px;
+  box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.mcard:hover{box-shadow:0 4px 14px rgba(0,0,0,.14);transform:translateY(-2px)}
+.mcard.live{border-top-color:var(--red)}
+.mcard.upcoming{border-top-color:#ccc}
+.mcard.result{border-top-color:#e5e5e5}
+.mc-badge.live{background:rgba(220,38,38,.08);color:var(--red)}
+.mc-badge.upcoming{background:rgba(217,119,6,.08);color:var(--amber)}
+.mc-badge.result{background:#f2f2f2;color:#bbb}
+.mc-name{color:#000}
+.mc-score{color:#000;font-weight:700}
+.mc-score.dim{color:#bbb}
+.mc-footer{color:#888;border-top:1px solid #f0f0f0}
+.mc-cta{color:var(--navy-dark);font-weight:700}
+
+/* ── SCORE HERO (match page) ── */
+.score-hero{background:#000;border-radius:0;border:none;
+  border-bottom:1px solid #1a1a1a;margin-top:0;padding:20px 24px 0}
+.score-hero::after{display:none}
+.live-pill{background:var(--red);color:#fff}
+.sh-match{color:#777}
+.sh-tname{color:#666}
+.sh-score{color:#fff}
+.sh-wkt{color:#444}
+.sh-ov{color:#555}
+.sh-vs{color:#333}
+.sh-need{background:rgba(217,119,6,.1);border-color:rgba(217,119,6,.3);color:#f59e0b}
+.sh-lbl{color:#555}
+.sh-val{color:var(--navy-light)}
+.sh-stats{background:#0a0a0a;margin:0 -24px;padding:10px 24px;
+  border-top:1px solid #1a1a1a;border-bottom:1px solid #1a1a1a}
+
+/* ── SUB TABS (match page) ── */
+.topnav{background:#000;border-bottom:1px solid #1a1a1a}
+.topnav-inner .logo b{color:#fff}
+.topnav-inner .logo em{color:var(--navy-light)}
+.tnav{color:#666;border-radius:0;border-bottom:3px solid transparent}
+.tnav:hover{color:#ccc;background:none;border-bottom-color:rgba(255,255,255,.2)}
+.tnav.on{color:#fff;background:none;border-bottom-color:var(--navy-light);font-weight:700}
+
+/* Match body white content zone */
+.match-body{background:#fff;border-radius:0 0 8px 8px}
+.left-col{background:#fff;padding-right:0}
+
+/* Sub tabs — NBA underline */
+.sub-tabs{background:#fff;border:none;border-bottom:1px solid #e5e5e5;
+  border-radius:0;padding:0 20px;margin-bottom:0}
+.stab{color:#999;border-radius:0;border-bottom:3px solid transparent;padding:12px 16px}
+.stab:hover{color:#333;background:none}
+.stab.on{background:none;color:#000;border-bottom-color:#000;box-shadow:none;font-weight:700}
+.sub-pg.on{padding:20px}
+
+/* ── SCORECARD ── */
+.inn-btn{background:#f2f2f2;border:1px solid #e5e5e5;color:#666}
+.inn-btn.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.inn-stats{background:#fff;border:none;border-bottom:1px solid #e5e5e5;
+  border-radius:0;padding:0;margin:0 -20px 18px}
+.inn-stats>div{padding:14px 12px;border-right:1px solid #e5e5e5}
+.inn-stats>div:last-child{border-right:none}
+.ins-val{color:#000}
+.ins-lbl{color:#999}
+.tbl-section-lbl{color:#000;border-bottom:2px solid #000}
+table.ct th{background:#f5f5f5;color:#999;border-bottom:1px solid #e5e5e5}
+table.ct td{color:#333;border-bottom:1px solid #f0f0f0}
+table.ct tr:hover td{background:#fafafa}
+.pn{color:#000}
+.pd{color:#999}
+.hl-r{color:#000;font-weight:800;background:var(--navy);color:#fff;
+  padding:1px 5px;border-radius:3px;font-size:12px}
+.hl-w{color:var(--red);font-weight:800}
+.hl-e{color:var(--navy-dark);font-weight:700}
+
+/* ── COMMENTARY ── */
+.flavor-bar{background:#f2f2f2;border:1px solid #e5e5e5}
+.flv{color:#666}
+.flv:hover{color:#000;background:#e5e5e5}
+.flv.on-n{background:var(--navy);color:#fff}
+.flv.on-h{background:#0891b2;color:#fff}
+.flv.on-a{background:var(--amber);color:#000}
+.flv.on-m{background:var(--red);color:#fff}
+.ccard{background:#fff;border:none;border-left:3px solid #e5e5e5;
+  border-bottom:1px solid #f0f0f0;border-radius:0}
+.ccard.six{border-left-color:#0891b2}
+.ccard.four{border-left-color:var(--navy)}
+.ccard.wicket{border-left-color:var(--red)}
+.ccard.dot{border-left-color:#e5e5e5}
+.ctxt{color:#000}
+.over-bdg{background:#f2f2f2;color:#666;border:1px solid #e5e5e5}
+.bres.six{background:rgba(8,145,178,.1);color:#0e7490}
+.bres.four{background:rgba(29,78,216,.1);color:var(--navy-dark)}
+.bres.wicket{background:rgba(220,38,38,.1);color:var(--red)}
+.bres.dot{background:#f2f2f2;color:#999}
+.bres.run{background:#f2f2f2;color:#666}
+.cplayers{color:#888}
+.rbtn{background:#f2f2f2;border:1px solid #e5e5e5;color:#666}
+.rbtn.on{background:rgba(29,78,216,.08);border-color:var(--navy-bd);color:var(--navy-dark)}
+
+/* ── IMPACT CARDS ── */
+.imp-team-hdr{background:#f2f2f2;border:1px solid #e5e5e5}
+.imp-tname{color:#000}
+.imp-sc{background:#e5e5e5;color:#666}
+.ipc{background:#fff;border:1px solid #e5e5e5;border-radius:10px}
+.ipc:hover{border-color:#bbb;transform:translateY(-2px)}
+.ipc.r1{border-color:rgba(29,78,216,.3)}
+.ipc.r1::before{background:linear-gradient(90deg,var(--navy),rgba(29,78,216,.2))}
+.ipc.r2{border-color:#ccc}
+.ipc.r3{border-color:rgba(180,140,0,.3)}
+.ipc-head{border-bottom:1px solid #f0f0f0}
+.r1 .ipc-rank{background:rgba(29,78,216,.1);color:var(--navy-dark);border-color:var(--navy-bd)}
+.r2 .ipc-rank{background:#f2f2f2;color:#555;border-color:#ccc}
+.r3 .ipc-rank{background:rgba(180,140,0,.08);color:#7a5800;border-color:rgba(180,140,0,.3)}
+.ipc-name{color:#000}
+.ipc-team{color:#666}
+.ipc-role{background:#f2f2f2;color:#666;border-color:#e5e5e5}
+.r1 .ipc-score{color:var(--navy-dark)}
+.r2 .ipc-score{color:#555}
+.r3 .ipc-score{color:#7a5800}
+.r1 .ipc-bar-f{background:var(--navy)}
+.r2 .ipc-bar-f{background:#999}
+.r3 .ipc-bar-f{background:#c8960a}
+.ipc-bar{background:#e5e5e5}
+.ipc-dim{background:#f5f5f5;border:1px solid #e5e5e5}
+.ipc-dv.bat{color:var(--navy-dark)}
+.ipc-dv.bowl{color:#0e7490}
+.ipc-dv.fld{color:#7a5800}
+.ipc-dv.na{color:#ccc}
+.ipc-dl{color:#999}
+.ipc-desc{color:#555;border-top-color:#f0f0f0}
+
+/* ── VENUE & CONDITIONS ── */
+.weather-card{background:#fff;border:1px solid #e5e5e5}
+.wx-temp{color:#000}
+.wx-cond{color:#555}
+.wx-loc{color:#999}
+.wx-hourly-hdr{background:#f2f2f2;color:#888;border-bottom:1px solid #e5e5e5}
+.wx-hr{border-right-color:#e5e5e5}
+.wx-hr.active{background:rgba(29,78,216,.04)}
+.wx-hr-time{color:#999}
+.wx-hr.active .wx-hr-time{color:var(--navy-dark)}
+.wx-hr-temp{color:#000}
+.wx-hr-rain{color:#0891b2}
+.wx-hr-wind{color:#888}
+.wx-s-lbl{color:#999}
+.wx-s-val{color:#000}
+.grd-section-lbl{color:#000}
+.grd-stat-card{background:#fff;border:1px solid #e5e5e5}
+.grd-lbl{color:#999}
+.grd-phase{background:#fff;border:1px solid #e5e5e5}
+.grd-phase-name{color:#000}
+
+/* ── MOMENTUM SIDEBAR ── */
+.mom-sidebar{background:#000;padding:12px;border-radius:0 0 8px 0}
+.mom-panel{background:#111;border:none;border-radius:8px}
+.mom-panel-hdr{border-bottom:1px solid #1a1a1a}
+.mom-panel-name{color:#fff}
+.mom-panel-score{color:#666}
+.ym-btn{border-color:#1a1a1a;color:#666}
+.ym-btn:hover{color:#ccc;border-color:#333}
+.ym-btn.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.mom-legend{background:#111;border:none;border-radius:8px;color:#666}
+.drag-handle::before{background:#2a2a2a}
+.drag-handle:hover::before,.drag-handle.dragging::before{background:var(--navy)}
+
+/* ── CHAT WIDGET ── */
+.chat-fab{background:var(--navy);box-shadow:0 8px 28px rgba(29,78,216,.3)}
+.chat-fab:hover{box-shadow:0 12px 36px rgba(29,78,216,.5)}
+.cp-hdr{background:#111;border-bottom:1px solid #1a1a1a}
+.cp-title{color:#fff}
+.cp-sub{color:#555}
+.chat-msgs{background:#0a0a0a}
+.cbubble{background:#1a1a1a;border:1px solid #252525;color:#fff}
+.cmsg.user .cbubble{background:rgba(29,78,216,.1);border-color:rgba(29,78,216,.25)}
+.cav{background:#222}
+.cav.ai{background:rgba(29,78,216,.15);color:var(--navy-light);font-family:var(--fd)}
+.cp-suggs{background:#0a0a0a}
+.csugg{background:#1a1a1a;border:1px solid #252525;color:#888}
+.csugg:hover{border-color:var(--navy-bd);color:var(--navy-light)}
+.cp-inp{background:#111;border-top:1px solid #1a1a1a}
+.cinput{background:#0a0a0a;border:1px solid #252525;color:#fff}
+.cinput:focus{border-color:var(--navy-bd)}
+.cinput::placeholder{color:#444}
+.csend{background:var(--navy);color:#fff}
+.csend:hover{opacity:.85}
+
+/* ── SETTINGS (old class names — still works) ── */
+.sov{background:rgba(0,0,0,.75)}
+.sbox{background:#fff;border:1px solid #e5e5e5}
+.stitle{color:#000}
+.sfield label{color:#666}
+.sfield input{background:#f2f2f2;border:1px solid #e5e5e5;color:#000}
+.sfield input:focus{border-color:var(--navy)}
+.sbtn{background:var(--navy);color:#fff}
+.sbtn:hover{background:var(--navy-light)}
+.ico-btn{background:#1a1a1a;border-color:#252525;color:#666}
+.ico-btn:hover{border-color:#444;color:#fff}
+
+/* ── LANDING: AI STRIP ── */
+.ai-strip{background:rgba(29,78,216,.06);border:1px solid rgba(29,78,216,.2)}
+.ai-strip-lbl{color:var(--navy-dark)}
+.ai-strip-txt{color:#555}
+
+/* ── LANDING: CONTENT TABS ── */
+.content-tabs{background:#fff;border-bottom:1px solid #e5e5e5;padding:0}
+.ctab{color:#999;border-bottom:3px solid transparent}
+.ctab:hover{color:#333}
+.ctab.on{color:#000;border-bottom-color:#000}
+
+/* ── LANDING: AI REPORT ── */
+.ai-report{background:#fff;border:1px solid #e5e5e5}
+.air-badge{background:rgba(29,78,216,.08);border-color:rgba(29,78,216,.25);color:var(--navy-dark)}
+.air-match{color:#888}
+.air-headline{color:#000}
+.air-body{color:#444}
+.air-stats{border-top:1px solid #e5e5e5}
+.air-stat-v{color:#000;font-weight:800}
+.air-stat-l{color:#999}
+.air-gen-btn{background:var(--navy);color:#fff}
+.air-gen-btn:hover{background:var(--navy-light)}
+
+/* ── LANDING: ARTICLES ── */
+.acard{background:#fff;border:none;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.acard:hover{box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.acard-cat{color:#888}
+.acard-hl{color:#000}
+.acard-meta span{color:#888}
+.acard-tag,.ntag{background:var(--navy);color:#fff}
+
+/* ── LANDING: SERIES ── */
+.scard{background:#fff;border:1px solid #e5e5e5;border-radius:10px}
+.scard:hover{border-color:#bbb}
+.scard-name{color:#000}
+.scard-sub{color:#888}
+.scard-badge.live{background:rgba(220,38,38,.08);color:var(--red)}
+.scard-badge.upcoming{background:rgba(217,119,6,.08);color:var(--amber)}
+.scard-badge.ended{background:#f2f2f2;color:#bbb}
+
+/* ── LANDING: TEAMS ── */
+.tcard{background:#fff;border:1px solid #e5e5e5;border-radius:10px}
+.tcard:hover{border-color:var(--navy);box-shadow:0 3px 10px rgba(29,78,216,.1)}
+.tcard-name{color:#000}
+.tcard-rank{color:#888}
+
+/* ── LANDING: SIDEBAR ── */
+.sidebar-box{background:#fff;border:1px solid #e5e5e5}
+.sb-title{color:#000}
+.sb-more{color:var(--navy-dark);font-weight:700;background:none;border:none;cursor:pointer}
+.rk-item:hover{background:#fafafa}
+.rk-name{color:#000}
+.rk-pts{color:#000;font-weight:700}
+.rk-chg.up{color:var(--green)}
+.rk-chg.dn{color:var(--red)}
+.rk-chg.eq{color:#bbb}
+.tr-item{border-bottom:1px solid #f5f5f5}
+.tr-item:hover{background:#fafafa}
+.tr-hl{color:#000}
+.tr-meta{color:#bbb}
+.poll-q{color:#000}
+.poll-opt{background:#f5f5f5;border:1px solid #e5e5e5;color:#666}
+.poll-opt:hover{border-color:var(--navy-bd);color:var(--navy-dark)}
+.poll-opt.voted{border-color:var(--navy);color:#000}
+.poll-bar{background:rgba(29,78,216,.08)}
+.poll-pct{color:var(--navy-dark)}
+.poll-total{color:#bbb}
+
+/* ── NEWS CARDS ── */
+.ncard{background:#fff;border:none;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.ncard:hover{box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.nhl{color:#000}
+.nmeta{color:#888}
+.nrbtn{color:#888}
+.nrbtn:hover{color:#000}
+
+/* ── RANKINGS inline styles override ── */
+[style*="border-bottom:2px solid var(--navy-light)"]{border-bottom-color:var(--navy) !important}
+[style*="color:var(--lime)"]{color:var(--navy-light) !important}
+
+/* ══ NBA SCORE STRIP ═════════════════════════════════ */
+.score-strip{background:#000;border-bottom:1px solid #222;width:100%}
+.score-strip-inner{max-width:1440px;margin:0 auto;display:flex;align-items:stretch;overflow-x:auto;scrollbar-width:none}
+.score-strip-inner::-webkit-scrollbar{display:none}
+.ss-date-col{flex-shrink:0;width:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px;border-right:1px solid #222;background:#000;position:sticky;left:0;z-index:2}
+.ss-date-day{font-size:8px;font-weight:800;letter-spacing:1.5px;color:#555;text-transform:uppercase}
+.ss-date-md{font-size:10px;font-weight:700;color:#888;margin-top:2px;white-space:nowrap}
+.ss-games{display:flex;align-items:stretch}
+.ss-game{flex-shrink:0;min-width:168px;padding:10px 14px;border-right:1px solid #1a1a1a;cursor:pointer;transition:background .15s;display:flex;flex-direction:column;justify-content:center}
+.ss-game:hover{background:#111}
+.ss-game-status{font-size:8px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#555;margin-bottom:5px;display:flex;align-items:center;gap:4px}
+.ss-live-dot{width:4px;height:4px;border-radius:50%;background:var(--red);animation:pulse 1s infinite}
+.ss-game-status.is-live{color:var(--red)}
+.ss-team-row{display:flex;align-items:center;justify-content:space-between;padding:2px 0}
+.ss-team-info{display:flex;align-items:center;gap:6px;flex:1;min-width:0}
+.ss-flag{font-size:14px;line-height:1;flex-shrink:0}
+.ss-name{font-size:12px;font-weight:600;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ss-name.w{color:#fff}
+.ss-sc{font-family:var(--fm);font-size:13px;font-weight:700;color:#888;min-width:42px;text-align:right;flex-shrink:0}
+.ss-sc.w{color:#fff}
+.ss-sc.live{color:var(--navy-light)}
+.ss-arr{font-size:8px;color:transparent;width:7px;flex-shrink:0}
+.ss-arr.show{color:var(--navy-light)}
+.ss-upcoming-time{font-size:11px;color:#444;font-family:var(--fm);text-align:center;padding:6px 0}
+
+</style>
+</head>
+<body>
+
+<!-- TICKER -->
+<div class="ticker">
+  <div class="ticker-label">LIVE</div>
+  <div style="overflow:hidden;flex:1;display:flex">
+    <div class="ticker-track" id="tkr"></div>
+  </div>
+</div>
+<!-- NAV -->
+<header class="cricnav">
+  <div class="cricnav-inner">
+    <a href="index.html" class="cricnav-logo"><b>CRIC</b><em>AI</em><s>/ INTELLIGENCE</s></a>
+    <nav class="cricnav-tabs" id="cricnav-tabs">
+      <button class="crtab active" onclick="location.href='index.html'">Home</button>
+      <button class="crtab" >Match</button>
+      <button class="crtab" onclick="location.href='players.html'">Players</button>
+      <button class="crtab" >Series</button>
+      <button class="crtab" >Teams</button>
+      <button class="crtab" >Rankings</button>
+      <button class="crtab" >News</button>
+    </nav>
+    <div class="cricnav-r">
+      <button class="cricnav-btn" onclick="document.getElementById('cric-settings').classList.add('open')" title="Settings">&#9881;</button>
+    </div>
+  </div>
+</header>
+<!-- SETTINGS -->
+<div class="cric-settings" id="cric-settings" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="cric-settings-box">
+    <div class="cric-settings-title">SETTINGS</div>
+    <div class="cric-sfield">
+      <label>Claude API Key</label>
+      <input id="api-key-inp" type="password" placeholder="sk-ant-api03-…"/>
+    </div>
+    <div class="cric-sfield">
+      <label>Cricbuzz API Key</label>
+      <input id="cbz-inp" type="text" placeholder="Enter Cricbuzz key"/>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center">
+      <button class="cric-sbtn" onclick="saveSettings()">Save</button>
+      <span id="smsg" style="font-size:11px;color:var(--navy);display:none">Saved ✓</span>
+    </div>
+  </div>
+</div>
+ MATCH CARDS ROW ── -->
+
+</div><!-- close .page temporarily so strip goes full-width -->
+
+<!-- NBA SCORE STRIP — full width black bar below nav -->
+<div class="score-strip">
+  <div class="score-strip-inner">
+    <div class="ss-date-col">
+      <div class="ss-date-day" id="ss-date-day">TUE</div>
+      <div class="ss-date-md" id="ss-date-md">MAR 17</div>
+    </div>
+    <div class="ss-games" id="ss-games"></div>
+  </div>
+</div>
+
+<!-- Re-open .page -->
+<div class="page">
+
+  <!-- ── AI INSIGHT STRIP ── -->
+  <div class="ai-strip" style="margin-top:16px">
+    <div class="ai-strip-icon">🤖</div>
+    <div class="ai-strip-body">
+      <div class="ai-strip-lbl">AI Live Insight</div>
+      <div class="ai-strip-txt">De Kock (58*) + Klaasen (31*) need 47 off 24 at 11.75 RRR — NZ lead win probability at 62%. Dew factor at Centurion rising; outfield quickening could swing the chase. Conway's 94 impact score is the match high.</div>
+    </div>
+  </div>
+
+  <!-- ── MAIN CONTENT + SIDEBAR ── -->
+  <div class="content-area">
+
+    <!-- LEFT -->
+    <div class="left-content">
+
+      <!-- Content tabs -->
+      <div class="content-tabs">
+        <button class="ctab on" data-ct="news">News</button>
+        <button class="ctab" data-ct="series">Series</button>
+        <button class="ctab" data-ct="teams">Teams</button>
+      </div>
+
+      <!-- NEWS TAB -->
+      <div class="ctab-content on" id="ct-news">
+
+        <!-- AI Match Report card -->
+        <div class="ai-report">
+          <div class="air-badge">
+            <span>🤖</span> AI Match Report
+          </div>
+          <div class="air-match">NZ vs SA · 2nd T20I · SuperSport Park, Centurion · 17 Mar 2026</div>
+          <div class="air-headline">DE KOCK AND KLAASEN KEEP SA ALIVE AS CHASE ENTERS FINAL PHASE</div>
+          <div class="air-body" id="air-body">South Africa's chase is on a knife-edge after Devon Conway's masterful 72 off 48 propelled New Zealand to 186/6. With 47 needed off the final 24 deliveries, Quinton de Kock (58*) and Heinrich Klaasen (31*) are SA's last hope — their 48-run partnership the only thing standing between NZ and victory. Tim Southee's early double-wicket spell set the tone; now Milne holds the key to whether the chase succeeds or collapses under the pressure of a rising required rate.</div>
+          <button class="air-gen-btn" id="air-btn" onclick="generateReport()">
+            <span>✦</span> Regenerate with AI
+          </button>
+          <div class="air-stats">
+            <div class="air-stat"><div class="air-stat-v">186/6</div><div class="air-stat-l">NZ Score</div></div>
+            <div class="air-stat"><div class="air-stat-v">140/4*</div><div class="air-stat-l">SA Score</div></div>
+            <div class="air-stat"><div class="air-stat-v">47/24</div><div class="air-stat-l">Need/Balls</div></div>
+            <div class="air-stat"><div class="air-stat-v" style="color:var(--red)">62%</div><div class="air-stat-l">NZ Win Prob</div></div>
+            <div class="air-stat"><div class="air-stat-v">94</div><div class="air-stat-l">Top Impact (Conway)</div></div>
+          </div>
+        </div>
+
+        <!-- Article grid -->
+        <div class="article-grid" id="article-grid"></div>
+
+      </div>
+
+      <!-- SERIES TAB -->
+      <div class="ctab-content" id="ct-series">
+        <div class="series-list" id="series-list"></div>
+      </div>
+
+      <!-- TEAMS TAB -->
+      <div class="ctab-content" id="ct-teams">
+        <div class="teams-grid" id="teams-grid"></div>
+      </div>
+
+    </div><!-- end left -->
+
+    <!-- RIGHT SIDEBAR -->
+    <div class="right-sidebar">
+
+      <!-- ICC Rankings -->
+      <div class="sidebar-box">
+        <div class="sb-hdr">
+          <span class="sb-title">ICC T20I RANKINGS</span>
+          <button class="sb-more">All →</button>
+        </div>
+        <div style="display:flex;gap:0;border-bottom:1px solid var(--b1)">
+          <button class="rk-tab on" data-rkt="bat" style="flex:1;background:none;border:none;border-bottom:2px solid var(--navy-light);color:var(--navy-light);font-size:10px;font-weight:700;padding:7px 0;cursor:pointer;font-family:var(--fb);letter-spacing:.3px">Batting</button>
+          <button class="rk-tab" data-rkt="bowl" style="flex:1;background:none;border:none;border-bottom:2px solid transparent;color:var(--t3);font-size:10px;font-weight:700;padding:7px 0;cursor:pointer;font-family:var(--fb);letter-spacing:.3px">Bowling</button>
+          <button class="rk-tab" data-rkt="team" style="flex:1;background:none;border:none;border-bottom:2px solid transparent;color:var(--t3);font-size:10px;font-weight:700;padding:7px 0;cursor:pointer;font-family:var(--fb);letter-spacing:.3px">Teams</button>
+        </div>
+        <div class="ranking-list" id="rk-list"></div>
+      </div>
+
+      <!-- Trending -->
+      <div class="sidebar-box">
+        <div class="sb-hdr">
+          <span class="sb-title">TRENDING</span>
+        </div>
+        <div class="trending-list" id="trending-list"></div>
+      </div>
+
+      <!-- Poll -->
+      <div class="sidebar-box">
+        <div class="sb-hdr">
+          <span class="sb-title">FAN POLL</span>
+        </div>
+        <div class="poll-box">
+          <div class="poll-q">Who will win the NZ vs SA T20I tonight?</div>
+          <div class="poll-opts" id="poll-opts"></div>
+          <div class="poll-total" id="poll-total">2,847 votes</div>
+        </div>
+      </div>
+
+    </div><!-- end sidebar -->
+  </div><!-- end content-area -->
+
+  
+</div>
+
+<script>
+'use strict';
+const CFG={key:localStorage.getItem('cric_claude_key')||'',model:'claude-haiku-4-5-20251001',api:'https://api.anthropic.com/v1/messages'};
+
+function goMatch(id){window.location.href='match.html?id='+(id||'122698');}
+
+// ── NBA SCORE STRIP ──
+function buildScoreStrip(){
+  const today = new Date();
+  const days = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  document.getElementById('ss-date-day').textContent = days[today.getDay()];
+  document.getElementById('ss-date-md').textContent = months[today.getMonth()] + ' ' + today.getDate();
+
+  document.getElementById('ss-games').innerHTML = MATCH_DATA.map(m => {
+    const isLive = m.st === 'live';
+    const isUpcoming = m.st === 'upcoming';
+    const statusHTML = isLive
+      ? `<div class="ss-game-status is-live"><div class="ss-live-dot"></div>LIVE · ${m.fmt}</div>`
+      : isUpcoming
+      ? `<div class="ss-game-status">${m.fmt} · UPCOMING</div>`
+      : `<div class="ss-game-status">FINAL · ${m.fmt}</div>`;
+
+    if(isUpcoming){
+      return `<div class="ss-game" onclick="goMatch('${m.id||'122698'}')">
+        ${statusHTML}
+        <div class="ss-team-row"><div class="ss-team-info"><span class="ss-flag">${m.f1}</span><span class="ss-name">${m.t1}</span></div></div>
+        <div class="ss-team-row"><div class="ss-team-info"><span class="ss-flag">${m.f2}</span><span class="ss-name">${m.t2}</span></div></div>
+        <div class="ss-upcoming-time">${m.foot}</div>
+      </div>`;
+    }
+
+    // For live/result: determine winner by score (simple)
+    const w1 = false, w2 = false; // live match no winner yet
+    return `<div class="ss-game" onclick="goMatch('${m.id||'122698'}')">
+      ${statusHTML}
+      <div class="ss-team-row">
+        <div class="ss-team-info"><span class="ss-flag">${m.f1}</span><span class="ss-name ${isLive?'w':''}">${m.t1}</span></div>
+        <span class="ss-arr"></span>
+        <span class="ss-sc ${isLive?'live':''}">${m.s1||''}</span>
+      </div>
+      <div class="ss-team-row">
+        <div class="ss-team-info"><span class="ss-flag">${m.f2}</span><span class="ss-name ${isLive?'w':''}">${m.t2}</span></div>
+        <span class="ss-arr"></span>
+        <span class="ss-sc ${isLive?'live':''}">${m.s2||''}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── TICKER ──
+const TICKERS=[
+  {live:true, t:'NZ 186/6 (20) vs SA 140/4* (16) — SA need 47 off 24'},
+  {live:true, t:'IND 342/8 (88.3) vs ENG 289 all out — Day 3 · IND lead by 53'},
+  {live:false,t:'AUS vs PAK ODI — tomorrow 9:30 AM IST · MCG'},
+  {live:false,t:'WI 178/5 def SL 165/9 by 13 runs'},
+  {live:true, t:'Conway Impact Score: 94 — match high · NZ vs SA'},
+  {live:true, t:'Nortje 149.7 kmh — fastest ball of series · NZ vs SA'},
+  {live:false,t:'SL vs BAN 3rd T20I — Mar 19 · 7:00 PM IST'},
+];
+function buildTicker(){const a=[...TICKERS,...TICKERS];const _el_tkr=document.getElementById('tkr');if(!_el_tkr){}else _el_tkr.innerHTML=a.map(t=>`<div class="ticker-item"><span class="tdot" style="${!t.live?'background:rgba(0,0,0,.2);animation:none':''}"></span>${t.t}</div>`).join('');}
+
+// ── MATCH CARDS ──
+const MATCH_DATA=[
+  {id:'122698', st:'live',   fmt:'T20I', t1:'New Zealand',  f1:'🇳🇿', t2:'South Africa', f2:'🇿🇦', s1:'186/6 (20)',  s2:'140/4* (16)', foot:'SA need 47 off 24 · NZ lead 62%', cta:'Live analysis'},
+  {id:'122699', st:'live',   fmt:'TEST', t1:'India',         f1:'🇮🇳', t2:'England',      f2:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', s1:'342/8 (88.3)',s2:'289 all out',  foot:'Day 3 · India lead by 53 runs',  cta:'Match centre'},
+  {id:'122700', st:'upcoming',fmt:'ODI', t1:'Australia',     f1:'🇦🇺', t2:'Pakistan',     f2:'🇵🇰', s1:'',           s2:'',            foot:'Tomorrow · 9:30 AM IST · MCG',  cta:'Preview'},
+  {id:'122701', st:'upcoming',fmt:'T20I',t1:'Bangladesh',    f1:'🇧🇩', t2:'Sri Lanka',    f2:'🇱🇰', s1:'',           s2:'',            foot:'19 Mar · 3:00 PM IST',           cta:'Preview'},
+  {id:'122702', st:'result', fmt:'T20I', t1:'West Indies',   f1:'🏝', t2:'Sri Lanka',    f2:'🇱🇰', s1:'178/5 (20)', s2:'165/9 (20)', foot:'WI won by 13 runs',              cta:'Report'},
+  {id:'122703', st:'result', fmt:'ODI',  t1:'Afghanistan',   f1:'🇦🇫', t2:'Zimbabwe',     f2:'🇿🇼', s1:'251 (49.2)', s2:'214/8 (50)', foot:'AFG won by 37 runs',             cta:'Report'},
+];
+function buildMatchCards(){
+  const el=document.getElementById('match-cards');
+  if(!el)return;
+  el.innerHTML=MATCH_DATA.map(m=>`
+    <div class="mcard ${m.st}" onclick="goMatch('${m.id||'122698'}')">
+      <div class="mc-top">
+        <div class="mc-badge ${m.st}">${m.st==='live'?'Live':m.st==='upcoming'?'Upcoming':'Result'}</div>
+        <div class="mc-fmt">${m.fmt}</div>
+      </div>
+      <div class="mc-teams">
+        <div class="mc-team"><span class="mc-flag">${m.f1}</span><span class="mc-name">${m.t1}</span><span class="mc-score ${!m.s1?'dim':''}">${m.s1||'—'}</span></div>
+        <div class="mc-team"><span class="mc-flag">${m.f2}</span><span class="mc-name">${m.t2}</span><span class="mc-score ${!m.s2?'dim':''}">${m.s2||'—'}</span></div>
+      </div>
+      <div class="mc-footer">${m.foot}<div class="mc-cta">${m.cta}</div></div>
+    </div>`).join('');
+}
+
+// ── ARTICLES ──
+const ARTICLES=[
+  {feat:true, tag:'LIVE',    cat:'Match Report',   icon:'🏏', hl:'De Kock and Klaasen keep SA alive — 47 needed off 24 as dew factor rises at Centurion',               time:'2 min ago'},
+  {feat:false,tag:'ANALYSIS',cat:'Impact',         icon:'📊', hl:'Conway\'s 94 impact score: How one innings redefined the NZ batting blueprint',                         time:'22 min ago'},
+  {feat:false,tag:'VIRAL',   cat:'Social',         icon:'🔥', hl:'"Finisher has left the chat" — Twitter explodes as David Miller falls for 5',                            time:'30 min ago'},
+  {feat:false,tag:'STATS',   cat:'Stats',          icon:'⚡', hl:'Nortje 149.7 kmh — the fastest ball of the SA vs NZ series and what it means for the decider',          time:'1 hr ago'},
+  {feat:false,tag:'PREVIEW', cat:'Preview',        icon:'🌐', hl:'3rd T20I preview: What both camps must fix before the series decider',                                  time:'2 hr ago'},
+  {feat:false,tag:'PODCAST', cat:'Audio',          icon:'🎙', hl:'"We had a plan for every batter" — Maharaj on SA\'s T20I bowling strategy',                            time:'3 hr ago'},
+];
+function buildArticles(){
+  const _el_article_grid=document.getElementById('article-grid');if(!_el_article_grid){}else _el_article_grid.innerHTML=ARTICLES.map(a=>`
+    <div class="acard${a.feat?' featured':''}">
+      <div class="acard-img">
+        <div class="acard-bg">CRIC</div>
+        <span class="acard-icon">${a.icon}</span>
+        <span class="acard-tag">${a.tag}</span>
+      </div>
+      <div class="acard-body">
+        <div class="acard-cat">${a.cat}</div>
+        <div class="acard-hl">${a.hl}</div>
+        <div class="acard-meta"><span>${a.time}</span><span>NZ vs SA</span></div>
+      </div>
+    </div>`).join('');
+}
+
+// ── SERIES ──
+const SERIES=[
+  {flags:'🇳🇿🇿🇦',name:'NZ vs South Africa T20I Series 2026',   sub:'2 of 3 played · Centurion',      st:'live'},
+  {flags:'🇮🇳🏴󠁧󠁢󠁥󠁮󠁧󠁿', name:'India vs England Test Series 2026',        sub:'2nd Test, Day 3 · Lord\'s',       st:'live'},
+  {flags:'🇦🇺🇵🇰',name:'Australia vs Pakistan ODI Series 2026',  sub:'1st ODI · Tomorrow · MCG',         st:'upcoming'},
+  {flags:'🏆',    name:'ICC Champions Trophy 2025',              sub:'Concluded · PAK won',               st:'ended'},
+  {flags:'🇱🇰🇧🇩',name:'Sri Lanka vs Bangladesh T20I Series',    sub:'Starts 19 Mar · Colombo',          st:'upcoming'},
+  {flags:'🏆',    name:'Women\'s T20 World Cup 2026',            sub:'Starts Apr 10 · South Africa',     st:'upcoming'},
+];
+function buildSeries(){
+  const _el_series_list=document.getElementById('series-list');if(!_el_series_list){}else _el_series_list.innerHTML=SERIES.map(s=>`
+    <div class="scard">
+      <div class="scard-flags">${s.flags}</div>
+      <div class="scard-info">
+        <div class="scard-name">${s.name}</div>
+        <div class="scard-sub">${s.sub}</div>
+      </div>
+      <div class="scard-badge ${s.st}">${s.st==='live'?'Live':s.st==='upcoming'?'Upcoming':'Ended'}</div>
+    </div>`).join('');
+}
+
+// ── TEAMS ──
+const TEAMS=[
+  {flag:'🇮🇳',name:'India',       rank:'#1 T20I'},
+  {flag:'🇦🇺',name:'Australia',   rank:'#2 T20I'},
+  {flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',name:'England',    rank:'#3 T20I'},
+  {flag:'🇵🇰',name:'Pakistan',    rank:'#4 T20I'},
+  {flag:'🇿🇦',name:'S. Africa',   rank:'#5 T20I'},
+  {flag:'🇳🇿',name:'New Zealand', rank:'#6 T20I'},
+  {flag:'🇱🇰',name:'Sri Lanka',   rank:'#7 T20I'},
+  {flag:'🇧🇩',name:'Bangladesh',  rank:'#8 T20I'},
+  {flag:'🏝', name:'West Indies',  rank:'#9 T20I'},
+  {flag:'🇦🇫',name:'Afghanistan', rank:'#10 T20I'},
+  {flag:'🇿🇼',name:'Zimbabwe',    rank:'#11 T20I'},
+  {flag:'🇮🇪',name:'Ireland',     rank:'#12 T20I'},
+];
+function buildTeams(){
+  const _el_teams_grid=document.getElementById('teams-grid');if(!_el_teams_grid){}else _el_teams_grid.innerHTML=TEAMS.map(t=>`
+    <div class="tcard">
+      <div class="tcard-flag">${t.flag}</div>
+      <div class="tcard-name">${t.name}</div>
+      <div class="tcard-rank">${t.rank}</div>
+    </div>`).join('');
+}
+
+// ── RANKINGS ──
+const RK={
+  bat:[
+    {flag:'🇮🇳',name:'V. Kohli',    pts:'887',chg:'eq'},
+    {flag:'🇧🇩',name:'L. Das',      pts:'865',chg:'up'},
+    {flag:'🇦🇺',name:'D. Warner',   pts:'851',chg:'dn'},
+    {flag:'🇳🇿',name:'D. Conway',   pts:'834',chg:'up'},
+    {flag:'🇵🇰',name:'M. Rizwan',   pts:'821',chg:'eq'},
+  ],
+  bowl:[
+    {flag:'🇦🇺',name:'A. Zampa',    pts:'762',chg:'eq'},
+    {flag:'🇮🇳',name:'J. Bumrah',   pts:'751',chg:'up'},
+    {flag:'🇿🇦',name:'A. Nortje',   pts:'738',chg:'up'},
+    {flag:'🇵🇰',name:'S. Shah',     pts:'724',chg:'dn'},
+    {flag:'🇳🇿',name:'T. Southee',  pts:'710',chg:'eq'},
+  ],
+  team:[
+    {flag:'🇮🇳',name:'India',       pts:'274',chg:'eq'},
+    {flag:'🇦🇺',name:'Australia',   pts:'268',chg:'eq'},
+    {flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',name:'England',    pts:'261',chg:'up'},
+    {flag:'🇵🇰',name:'Pakistan',    pts:'254',chg:'dn'},
+    {flag:'🇿🇦',name:'S. Africa',   pts:'248',chg:'up'},
+  ]
+};
+let curRkt='bat';
+function buildRankings(type){
+  curRkt=type;
+  document.querySelectorAll('.rk-tab').forEach(b=>{
+    const on=b.dataset.rkt===type;
+    b.style.color=on?'var(--lime)':'var(--t3)';
+    b.style.borderBottomColor=on?'var(--lime)':'transparent';
+  });
+  const _el_rk_list=document.getElementById('rk-list');if(!_el_rk_list){}else _el_rk_list.innerHTML=RK[type].map((r,i)=>`
+    <div class="rk-item">
+      <div class="rk-num">${i+1}</div>
+      <div class="rk-flag">${r.flag}</div>
+      <div class="rk-name">${r.name}</div>
+      <div class="rk-pts">${r.pts}</div>
+      <div class="rk-chg ${r.chg}">${r.chg==='up'?'▲':r.chg==='dn'?'▼':'—'}</div>
+    </div>`).join('');
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('.rk-tab');
+  if(b) buildRankings(b.dataset.rkt);
+});
+
+// ── TRENDING ──
+const TRENDING=[
+  {hl:'De Kock 50 off 31 — SA chase alive',          meta:'2 min ago'},
+  {hl:'Conway Impact Score 94 — match high',          meta:'20 min ago'},
+  {hl:'"Miller has left the chat" trends on X',       meta:'35 min ago'},
+  {hl:'Nortje 149.7 kmh — series fastest',            meta:'1 hr ago'},
+  {hl:'Dew factor at Centurion — chasing advantage',  meta:'1 hr ago'},
+];
+function buildTrending(){
+  const _el_trending_list=document.getElementById('trending-list');if(!_el_trending_list){}else _el_trending_list.innerHTML=TRENDING.map((t,i)=>`
+    <div class="tr-item">
+      <div class="tr-num">${String(i+1).padStart(2,'0')}</div>
+      <div class="tr-body"><div class="tr-hl">${t.hl}</div><div class="tr-meta">${t.meta}</div></div>
+    </div>`).join('');
+}
+
+// ── POLL ──
+const POLL=[
+  {opt:'New Zealand',  pct:58, flag:'🇳🇿'},
+  {opt:'South Africa', pct:36, flag:'🇿🇦'},
+  {opt:'Too close',    pct:6,  flag:'🤷'},
+];
+let voted=false;
+function buildPoll(){
+  const _el_poll_opts=document.getElementById('poll-opts');if(!_el_poll_opts){}else _el_poll_opts.innerHTML=POLL.map((p,i)=>`
+    <div class="poll-opt ${voted?'voted':''}" onclick="vote(${i})">
+      <div class="poll-bar" style="width:${voted?p.pct:0}%"></div>
+      <span style="position:relative;display:flex;align-items:center;gap:6px">${p.flag} ${p.opt}</span>
+      ${voted?`<span class="poll-pct">${p.pct}%</span>`:''}
+    </div>`).join('');
+}
+window.vote=function(i){
+  if(voted)return;
+  voted=true;
+  buildPoll();
+  setTimeout(()=>{
+    document.querySelectorAll('.poll-opt')[i].style.borderColor='var(--lime)';
+  },50);
+};
+
+// ── CONTENT TABS ──
+document.addEventListener('click',e=>{
+  const b=e.target.closest('.ctab');
+  if(!b)return;
+  document.querySelectorAll('.ctab').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.ctab-content').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  document.getElementById('ct-'+b.dataset.ct).classList.add('on');
+});
+
+// ── AI MATCH REPORT ──
+async function generateReport(){
+  const btn=document.getElementById('air-btn');
+  const body=document.getElementById('air-body');
+  btn.innerHTML='<span>⟳</span> Generating…';
+  btn.classList.add('loading');
+  body.style.opacity='.4';
+
+  if(!CFG.key){
+    setTimeout(()=>{
+      body.style.opacity='1';
+      btn.innerHTML='<span>✦</span> Regenerate with AI';
+      btn.classList.remove('loading');
+    },1200);
+    return;
+  }
+  try{
+    const res=await fetch(CFG.api,{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':CFG.key,'anthropic-version':'2023-06-01'},
+      body:JSON.stringify({model:CFG.model,max_tokens:200,
+        messages:[{role:'user',content:'Write a 3-sentence cricket match report intro (no headers, no bullets, flowing prose): NZ 186/6 (20 ov) vs SA 140/4* (16 ov). SA need 47 off 24. Conway 72(48) Impact 94. De Kock 58*(38). Southee 2/28. NZ win prob 62%. Make it vivid and punchy.'}]
+      })
+    });
+    const d=await res.json();
+    body.textContent=d.content?.[0]?.text||body.textContent;
+  }catch{/* keep existing */}
+  body.style.opacity='1';
+  btn.innerHTML='<span>✦</span> Regenerate with AI';
+  btn.classList.remove('loading');
+}
+
+// ── INIT ──
+buildTicker();
+buildScoreStrip();
+buildMatchCards();
+buildArticles();
+buildSeries();
+buildTeams();
+buildRankings('bat');
+buildTrending();
+buildPoll();
+</script>
+<!-- FOOTER -->
+<footer class="cricfooter">
+  <div class="cricfooter-inner">
+    <div class="cricfooter-cols">
+      <div>
+        <a href="index.html" style="font-family:var(--fd);font-size:20px;letter-spacing:3px;
+           text-decoration:none;display:block;margin-bottom:10px">
+          <span style="color:#fff">CRIC</span><span style="color:var(--navy-light)">AI</span>
+        </a>
+        <div style="font-size:11px;color:#555;line-height:1.9">
+          Live cricket intelligence platform.<br>
+          AI-powered match analysis,<br>
+          impact scoring &amp; predictions.
+        </div>
+      </div>
+      <div>
+        <div class="cricfooter-col-title">Cricket</div>
+        <a href="index.html" class="cricfooter-link">Live Scores</a>
+        <a href="match.html" class="cricfooter-link">Match Centre</a>
+        <a href="players.html" class="cricfooter-link">Players</a>
+        <span class="cricfooter-link">Series</span>
+        <span class="cricfooter-link">Teams</span>
+      </div>
+      <div>
+        <div class="cricfooter-col-title">Intelligence</div>
+        <span class="cricfooter-link">Impact Scores</span>
+        <span class="cricfooter-link">AI Match Reports</span>
+        <span class="cricfooter-link">Win Probability</span>
+        <span class="cricfooter-link">Momentum Graphs</span>
+      </div>
+      <div>
+        <div class="cricfooter-col-title">Company</div>
+        <span class="cricfooter-link">About Inyok.AI</span>
+        <span class="cricfooter-link">API Access</span>
+        <span class="cricfooter-link">Stats Glossary</span>
+        <span class="cricfooter-link">Privacy Policy</span>
+      </div>
+    </div>
+    <div class="cricfooter-bottom">
+      <div class="cricfooter-copy">&copy; 2026 Inyok.AI &middot; cricAI Platform &middot; Data via Cricbuzz API</div>
+      <div class="cricfooter-links">
+        <a href="index.html">Home</a>
+        <a href="match.html">Match</a>
+        <a href="players.html">Players</a>
+        <a href="#">Series</a>
+        <a href="#">Rankings</a>
+        <a href="#">Privacy</a>
+      </div>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

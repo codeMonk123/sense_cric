@@ -1,0 +1,2082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>cricAI</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07070f; --bg2:#0e0e1c; --bg3:#181830; --bg4:#21213a;
+  --lime:#c6f135; --cyan:#00e5c8; --red:#ff3b5c; --amber:#ffb830;
+  --t1:#f0f0f8; --t2:#c8c8e4; --t3:#8888aa; --t4:#4a4a68;
+  --b1:rgba(255,255,255,.14); --b2:rgba(255,255,255,.24);
+  --r:12px; --rsm:8px;
+  --fd:'Bebas Neue',sans-serif; --fb:'DM Sans',system-ui,sans-serif; --fm:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--t1);font-family:var(--fb);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:4px}
+
+/* ── TICKER ── */
+.ticker{background:var(--lime);height:30px;display:flex;align-items:center;overflow:hidden}
+.ticker-label{background:#000;color:var(--lime);font-family:var(--fd);font-size:12px;letter-spacing:1.5px;padding:0 14px;height:100%;display:flex;align-items:center;flex-shrink:0}
+.ticker-track{display:flex;animation:tick 44s linear infinite;white-space:nowrap}
+.ticker-item{font-size:11px;font-weight:500;color:#000;padding:0 22px;border-right:1px solid rgba(0,0,0,.12);display:flex;align-items:center;gap:6px;height:30px}
+.tdot{width:5px;height:5px;border-radius:50%;background:var(--red);animation:pulse 1s infinite;flex-shrink:0}
+@keyframes tick{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* ── TOP NAV ── */
+.topnav{background:rgba(7,7,15,.95);border-bottom:1px solid var(--b1);position:sticky;top:0;z-index:300;backdrop-filter:blur(24px)}
+.topnav-inner{max-width:1440px;margin:0 auto;padding:0 20px;height:52px;display:flex;align-items:center;gap:24px}
+.logo{font-family:var(--fd);font-size:24px;letter-spacing:3px;flex-shrink:0;display:flex;align-items:baseline;gap:1px}
+.logo b{color:var(--t1)}
+.logo em{color:var(--lime);font-style:normal}
+.logo s{color:var(--t3);font-size:11px;font-family:var(--fb);margin-left:6px;font-weight:400;text-decoration:none}
+.topnav-tabs{display:flex;gap:2px;flex:1;overflow-x:auto;scrollbar-width:none}
+.topnav-tabs::-webkit-scrollbar{display:none}
+.tnav{background:none;border:none;color:var(--t3);font-family:var(--fb);font-size:13px;font-weight:500;padding:6px 14px;border-radius:var(--rsm);cursor:pointer;white-space:nowrap;transition:all .15s}
+.tnav:hover{color:var(--t2);background:var(--bg3)}
+.tnav.on{color:#000;background:var(--lime);font-weight:700}
+.hdr-r{display:flex;gap:8px;align-items:center;flex-shrink:0}
+.ico-btn{width:32px;height:32px;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--rsm);color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s}
+.ico-btn:hover{border-color:var(--b2);color:var(--t1)}
+
+/* ── PAGE SHELL ── */
+.page{max-width:1440px;margin:0 auto;padding:0 20px}
+.tab-pg{display:none}
+.tab-pg.on{display:block}
+
+/* ── SCORES TAB ── */
+.match-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(278px,1fr));gap:14px;padding:22px 0}
+.mc{background:var(--bg2);border:1px solid var(--b1);border-top:3px solid var(--bg4);border-radius:var(--r);padding:16px 18px;cursor:pointer;transition:border-color .2s,transform .15s}
+.mc:hover{border-color:var(--b2);transform:translateY(-2px)}
+.mc.live{border-top-color:var(--red)}
+.mc.upcoming{border-top-color:var(--t4)}
+.mc.result{border-top-color:rgba(255,255,255,.18)}
+.mc-hdr{display:flex;justify-content:space-between;margin-bottom:10px}
+.mc-fmt{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:1px;font-weight:700}
+.mc-st{font-size:9px;font-weight:700;letter-spacing:.5px}
+.mc-st.live{color:var(--red)}
+.mc-st.upcoming{color:var(--amber)}
+.mc-st.result{color:var(--t2)}
+.mc-teams{display:flex;flex-direction:column;gap:7px;margin-bottom:8px}
+.mc-team{display:flex;justify-content:space-between;align-items:center}
+.mc-tn{font-weight:600;font-size:14px;color:var(--t1)}
+.mc-sc{font-family:var(--fm);font-size:13px;color:var(--lime)}
+.mc-sc.dim{color:var(--t2)}
+.mc-note{font-size:11px;color:var(--t2)}
+
+/* ── NEWS TAB ── */
+.news-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;padding:22px 0}
+.ncard{background:var(--bg2);border:1px solid var(--b1);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:border-color .2s,transform .15s}
+.ncard:hover{border-color:var(--b2);transform:translateY(-2px)}
+.nimg{height:140px;background:var(--bg3);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.nbg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:80px;letter-spacing:6px;color:var(--bg4);user-select:none}
+.nic{position:relative;font-size:40px;z-index:1}
+.ntag{position:absolute;bottom:8px;left:8px;background:var(--lime);color:#000;font-size:8px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:2px 8px;border-radius:3px}
+.nbody{padding:14px}
+.nhl{font-weight:600;font-size:14px;line-height:1.4;margin-bottom:6px;color:var(--t1)}
+.nmeta{font-size:10px;color:var(--t2);display:flex;gap:10px;flex-wrap:wrap}
+.nreact{display:flex;gap:8px;margin-top:8px}
+.nrbtn{font-size:11px;color:var(--t2);cursor:pointer;display:flex;align-items:center;gap:3px;background:none;border:none;font-family:var(--fb)}
+.nrbtn:hover{color:var(--t1)}
+
+/* ═══════════════════════════════════
+   MATCH PAGE LAYOUT
+═══════════════════════════════════ */
+
+/* Score hero — compact, full width */
+.score-hero{background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid var(--b1);border-radius:16px;padding:22px 28px;margin-top:18px;position:relative;overflow:hidden}
+.score-hero::after{content:'';position:absolute;top:-60px;right:-60px;width:220px;height:220px;background:radial-gradient(circle,rgba(198,241,53,.05) 0%,transparent 65%);pointer-events:none}
+.sh-meta{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.live-pill{background:var(--red);color:#fff;font-size:9px;font-weight:700;letter-spacing:1.5px;padding:3px 8px;border-radius:3px;display:flex;align-items:center;gap:4px}
+.live-pill::before{content:'';width:4px;height:4px;background:#fff;border-radius:50%;animation:pulse 1s infinite}
+.sh-match{font-size:12px;color:var(--t2);font-weight:500}
+.sh-scores{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:center}
+.sh-team{}
+.sh-team.away{text-align:right}
+.sh-tname{font-family:var(--fd);font-size:15px;letter-spacing:3px;color:var(--t2);margin-bottom:2px;font-weight:600}
+.sh-score{font-family:var(--fd);font-size:48px;line-height:1;letter-spacing:2px;color:var(--t1)}
+.sh-wkt{font-size:30px;color:var(--t2)}
+.sh-ov{font-size:11px;color:var(--t3);font-family:var(--fm);margin-top:3px}
+.sh-mid{display:flex;flex-direction:column;align-items:center;gap:7px}
+.sh-vs{font-family:var(--fd);font-size:22px;color:var(--t4);letter-spacing:3px}
+.sh-need{background:rgba(255,184,48,.1);border:1px solid rgba(255,184,48,.25);border-radius:16px;padding:4px 14px;font-size:10px;color:var(--amber);white-space:nowrap;font-weight:600}
+.sh-stats{display:flex;gap:20px;margin-top:14px;padding-top:12px;border-top:1px solid var(--b1);flex-wrap:wrap}
+.sh-stat{display:flex;flex-direction:column;gap:1px}
+.sh-lbl{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:1px;font-weight:700}
+.sh-val{font-family:var(--fm);font-size:13px;color:var(--lime);font-weight:500}
+
+/* Two-column resizable match layout */
+.match-body{display:flex;gap:0;margin-top:14px;align-items:start;min-height:600px}
+.left-col{flex:1;min-width:320px;overflow:hidden;padding-right:8px}
+.mom-sidebar{flex-shrink:0;width:380px;min-width:240px;max-width:600px;position:sticky;top:70px;display:flex;flex-direction:column;gap:10px;padding-left:8px}
+
+/* Drag handle */
+.drag-handle{flex-shrink:0;width:6px;cursor:col-resize;position:relative;align-self:stretch;display:flex;align-items:center;justify-content:center;margin-top:0;z-index:10}
+.drag-handle::before{content:'';position:absolute;top:0;bottom:0;left:2px;width:2px;background:var(--b1);border-radius:2px;transition:background .15s}
+.drag-handle::after{content:'⋮⋮';position:absolute;font-size:10px;color:var(--t4);letter-spacing:1px;writing-mode:vertical-lr;top:50%;transform:translateY(-50%)}
+.drag-handle:hover::before{background:var(--lime)}
+.drag-handle.dragging::before{background:var(--lime)}
+.sub-tabs{display:flex;gap:0;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:4px;margin-bottom:16px}
+.stab{flex:1;background:none;border:none;color:var(--t3);font-family:var(--fb);font-size:13px;font-weight:600;padding:8px 0;border-radius:7px;cursor:pointer;text-align:center;transition:all .15s;letter-spacing:.2px}
+.stab:hover{color:var(--t2)}
+.stab.on{background:var(--bg3);color:var(--t1);box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.sub-pg{display:none}
+.sub-pg.on{display:block}
+
+/* ── Scorecard ── */
+.inn-switcher{display:flex;gap:8px;margin-bottom:16px}
+.inn-btn{background:var(--bg3);border:1px solid var(--b1);color:var(--t2);font-size:12px;font-weight:600;padding:6px 18px;border-radius:20px;cursor:pointer;transition:all .15s;font-family:var(--fb)}
+.inn-btn.on{background:var(--lime);color:#000;border-color:var(--lime)}
+.inn-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:9px;margin-bottom:18px;padding:16px;background:var(--bg2);border-radius:var(--r);border:1px solid var(--b1)}
+.ins-val{font-family:var(--fd);font-size:24px;color:var(--lime);letter-spacing:1px}
+.ins-lbl{font-size:9px;color:var(--t2);text-transform:uppercase;letter-spacing:.8px;margin-top:1px;font-weight:600}
+.tbl-section-lbl{font-family:var(--fd);font-size:13px;letter-spacing:2px;color:var(--t2);margin:18px 0 10px}
+.twrap{overflow-x:auto}
+table.ct{width:100%;border-collapse:collapse;font-size:13px}
+table.ct th{background:var(--bg3);color:var(--t3);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:9px 12px;text-align:right;white-space:nowrap}
+table.ct th:first-child{text-align:left;border-radius:var(--rsm) 0 0 var(--rsm)}
+table.ct th:last-child{border-radius:0 var(--rsm) var(--rsm) 0}
+table.ct td{padding:10px 12px;text-align:right;border-bottom:1px solid rgba(255,255,255,.06);font-family:var(--fm);font-size:12px;color:var(--t1)}
+table.ct td:first-child{text-align:left;font-family:var(--fb)}
+table.ct tr:last-child td{border-bottom:none}
+table.ct tr:hover td{background:rgba(255,255,255,.02)}
+.pn{font-weight:600;color:var(--t1);font-size:13px}
+.pd{font-size:10px;color:var(--t3);font-weight:500;display:block}
+.hl-r{color:var(--lime);font-weight:700}
+.hl-w{color:var(--red);font-weight:700}
+.hl-e{color:var(--cyan);font-weight:700}
+.dnb{color:var(--t3);font-style:italic;font-size:11px}
+
+/* ── Commentary ── */
+.flavor-bar{display:flex;gap:3px;padding:3px;background:var(--bg3);border:1px solid var(--b1);border-radius:10px;width:fit-content;margin-bottom:16px}
+.flv{background:none;border:none;color:var(--t2);font-size:12px;font-weight:600;padding:6px 16px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s;font-family:var(--fb);white-space:nowrap}
+.flv:hover{color:var(--t1);background:var(--bg4)}
+.flv.on-n{background:var(--lime);color:#000}
+.flv.on-h{background:var(--cyan);color:#000}
+.flv.on-a{background:var(--amber);color:#000}
+.flv.on-m{background:var(--red);color:#fff}
+.comm-list{display:flex;flex-direction:column;gap:10px}
+.ccard{background:var(--bg2);border:1px solid var(--b1);border-left:3px solid var(--bg3);border-radius:var(--r);padding:14px 18px}
+.ccard.six{border-left-color:var(--cyan)}
+.ccard.four{border-left-color:var(--lime)}
+.ccard.wicket{border-left-color:var(--red)}
+.ccard.dot{border-left-color:var(--bg4)}
+.chdr{display:flex;align-items:center;gap:8px;margin-bottom:9px;flex-wrap:wrap}
+.over-bdg{font-family:var(--fm);font-size:10px;background:var(--bg4);color:var(--t2);padding:2px 8px;border-radius:4px;flex-shrink:0;font-weight:600}
+.bres{font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;flex-shrink:0;letter-spacing:.5px}
+.bres.six{background:rgba(0,229,200,.15);color:var(--cyan)}
+.bres.four{background:rgba(198,241,53,.15);color:var(--lime)}
+.bres.wicket{background:rgba(255,59,92,.15);color:var(--red)}
+.bres.dot{background:var(--bg4);color:var(--t3)}
+.bres.run{background:rgba(255,255,255,.08);color:var(--t2)}
+.cplayers{font-size:10px;color:var(--t2);margin-left:auto;font-weight:500}
+.ctxt{font-size:13px;line-height:1.7;color:var(--t1);margin-bottom:2px}
+.react-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}
+.rbtn{background:var(--bg3);border:1px solid var(--b1);border-radius:20px;padding:3px 10px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:3px;transition:all .15s;color:var(--t2);font-family:var(--fb)}
+.rbtn:hover{background:var(--bg4);border-color:var(--b2)}
+.rbtn.on{background:rgba(198,241,53,.1);border-color:rgba(198,241,53,.35);color:var(--lime)}
+.rcnt{font-family:var(--fm);font-size:10px}
+
+/* ── Impact ── */
+.imp-page{display:flex;flex-direction:column;gap:22px}
+.imp-team-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:9px 14px;background:var(--bg3);border:1px solid var(--b1);border-radius:9px}
+.imp-flag{font-size:20px;line-height:1}
+.imp-tname{font-family:var(--fd);font-size:17px;letter-spacing:2px;color:var(--t1)}
+.imp-sc{font-family:var(--fm);font-size:11px;color:var(--t2);margin-left:auto;font-weight:600;background:var(--bg4);padding:3px 8px;border-radius:5px}
+.imp-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:780px){.imp-cards{grid-template-columns:1fr}}
+.ipc{background:var(--bg2);border:1px solid rgba(255,255,255,.14);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;transition:border-color .2s,transform .18s;position:relative}
+.ipc:hover{border-color:rgba(255,255,255,.28);transform:translateY(-2px)}
+.ipc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:12px 12px 0 0}
+.ipc.r1::before{background:linear-gradient(90deg,#c6f135,rgba(198,241,53,.2))}
+.ipc.r2::before{background:linear-gradient(90deg,rgba(220,220,240,.6),transparent)}
+.ipc.r3::before{background:linear-gradient(90deg,rgba(200,160,50,.7),transparent)}
+.ipc.r1{border-color:rgba(198,241,53,.38)}
+.ipc.r2{border-color:rgba(210,210,230,.2)}
+.ipc.r3{border-color:rgba(200,160,50,.25)}
+.ipc-head{display:flex;align-items:center;padding:13px 14px 10px;border-bottom:1px solid rgba(255,255,255,.08)}
+.ipc-rank{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:22px;flex-shrink:0;margin-right:11px}
+.r1 .ipc-rank{background:rgba(198,241,53,.16);color:#c6f135;border:1.5px solid rgba(198,241,53,.45)}
+.r2 .ipc-rank{background:rgba(220,220,240,.09);color:#dcdcf0;border:1.5px solid rgba(220,220,240,.25)}
+.r3 .ipc-rank{background:rgba(200,160,50,.12);color:#d4a030;border:1.5px solid rgba(200,160,50,.38)}
+.ipc-id{flex:1;min-width:0}
+.ipc-name{font-weight:700;font-size:13px;color:var(--t1);line-height:1.2;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ipc-meta{display:flex;align-items:center;gap:5px}
+.ipc-flag{font-size:11px;line-height:1}
+.ipc-team{font-size:8px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--t2)}
+.ipc-role{font-size:7px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;padding:1px 6px;border-radius:3px;background:rgba(255,255,255,.09);color:var(--t2);border:1px solid rgba(255,255,255,.16)}
+.ipc-score-blk{padding:10px 14px 8px;display:flex;align-items:flex-end;gap:6px}
+.ipc-score{font-family:var(--fd);font-size:52px;line-height:1;letter-spacing:2px}
+.r1 .ipc-score{color:#c6f135}
+.r2 .ipc-score{color:#dcdcf0}
+.r3 .ipc-score{color:#d4a030}
+.ipc-slbl{font-size:7px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--t4);padding-bottom:5px;line-height:1.4}
+.ipc-bar{height:3px;background:var(--bg4);margin:0 14px 12px;border-radius:2px;overflow:hidden}
+.ipc-bar-f{height:100%;border-radius:2px;transition:width 1.1s cubic-bezier(.4,0,.2,1)}
+.r1 .ipc-bar-f{background:#c6f135}
+.r2 .ipc-bar-f{background:#dcdcf0}
+.r3 .ipc-bar-f{background:#d4a030}
+.ipc-dims{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 14px 12px}
+.ipc-dim{background:var(--bg3);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:6px 4px;text-align:center}
+.ipc-dv{font-family:var(--fm);font-size:14px;font-weight:700;line-height:1;margin-bottom:3px}
+.ipc-dv.bat{color:#c6f135}
+.ipc-dv.bowl{color:#00e5c8}
+.ipc-dv.fld{color:#ffb830}
+.ipc-dv.na{color:var(--t4)}
+.ipc-dl{font-size:7px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--t3)}
+.ipc-desc{font-size:10.5px;line-height:1.65;color:var(--t2);border-top:1px solid rgba(255,255,255,.08);padding:10px 14px 14px;flex:1}
+
+/* ── RIGHT: Momentum sidebar ── */
+/* width/flex rules live in the first .mom-sidebar declaration above — do not redeclare here */
+.mom-panel{background:var(--bg2);border:1px solid var(--b1);border-radius:14px;overflow:hidden}
+.mom-panel-hdr{padding:10px 14px 8px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--b1)}
+.mom-panel-title{display:flex;align-items:center;gap:8px}
+.mom-panel-name{font-family:var(--fd);font-size:14px;letter-spacing:2px;color:var(--t1)}
+.mom-panel-score{font-family:var(--fm);font-size:11px;color:var(--t2);font-weight:600}
+.live-dot-sm{width:6px;height:6px;background:var(--red);border-radius:50%;animation:pulse 1s infinite;flex-shrink:0}
+canvas.mom-cv{width:100%;display:block;cursor:crosshair;height:190px}
+canvas#cv-prg{height:155px}
+
+/* Y-axis toggle */
+.ymode-row{display:flex;gap:4px;padding:8px 14px;background:var(--bg3);border-top:1px solid var(--b1)}
+.ym-btn{flex:1;background:none;border:1px solid var(--b1);color:var(--t3);font-size:10px;font-weight:700;padding:4px 0;border-radius:6px;cursor:pointer;transition:all .15s;font-family:var(--fb);letter-spacing:.3px}
+.ym-btn:hover{color:var(--t2);border-color:var(--b2)}
+.ym-btn.on{background:var(--lime);color:#000;border-color:var(--lime)}
+
+/* Legend strip under momentum */
+.mom-legend{display:flex;flex-wrap:wrap;gap:8px 14px;padding:10px 14px;background:var(--bg2);border:1px solid var(--b1);border-radius:10px;font-size:10px;color:var(--t2)}
+.ml-item{display:flex;align-items:center;gap:5px}
+.ml-line{width:20px;height:2.5px;border-radius:2px;flex-shrink:0}
+.ml-line.thick{height:4px}
+.ml-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* ── Tooltip ── */
+#tt{position:fixed;background:#0a0a1a;border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:11px 14px;font-size:11px;color:var(--t1);pointer-events:none;opacity:0;transition:opacity .08s;min-width:190px;max-width:250px;z-index:9999;line-height:1.8;box-shadow:0 16px 48px rgba(0,0,0,.85)}
+#tt.v{opacity:1}
+.tt-ov{font-family:var(--fd);font-size:18px;letter-spacing:2px;margin-bottom:1px}
+.tt-val{font-family:var(--fm);font-size:12px;font-weight:600;margin-bottom:4px}
+.tt-type{font-size:9px;letter-spacing:.4px;margin-bottom:4px;text-transform:uppercase;font-weight:800}
+.tt-ev{display:flex;align-items:flex-start;gap:6px;font-size:10px;color:var(--t2);line-height:1.5;margin-top:2px;font-weight:500}
+.tt-mk{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:2px}
+.tt-div{height:1px;background:rgba(255,255,255,.1);margin:6px 0}
+
+/* ── Floating chat ── */
+.chat-fab{position:fixed;bottom:24px;right:24px;z-index:500;width:50px;height:50px;border-radius:50%;background:var(--lime);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 28px rgba(198,241,53,.28);transition:transform .2s,box-shadow .2s}
+.chat-fab:hover{transform:scale(1.1);box-shadow:0 12px 36px rgba(198,241,53,.4)}
+.chat-fab svg{width:24px;height:24px}
+.chat-panel{position:fixed;bottom:86px;right:24px;z-index:500;width:min(380px,calc(100vw - 40px));height:min(520px,calc(100vh - 110px));background:var(--bg2);border:1px solid var(--b2);border-radius:18px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.7);transform:scale(.92) translateY(14px);opacity:0;pointer-events:none;transition:transform .2s cubic-bezier(.4,0,.2,1),opacity .2s;transform-origin:bottom right}
+.chat-panel.open{transform:scale(1) translateY(0);opacity:1;pointer-events:all}
+.cp-hdr{padding:12px 16px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:9px;background:var(--bg3);flex-shrink:0}
+.cp-icon{width:30px;height:30px;border-radius:50%;background:rgba(198,241,53,.14);border:1px solid rgba(198,241,53,.35);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cp-icon svg{width:17px;height:17px}
+.cp-title{font-family:var(--fd);font-size:15px;letter-spacing:1.5px;color:var(--t1);flex:1}
+.cp-sub{font-size:9px;color:var(--t3);font-weight:500}
+.cp-close{background:none;border:none;color:var(--t3);cursor:pointer;font-size:16px;line-height:1;padding:2px;transition:color .15s}
+.cp-close:hover{color:var(--t1)}
+.chat-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+.cmsg{display:flex;gap:8px;max-width:88%}
+.cmsg.user{align-self:flex-end;flex-direction:row-reverse}
+.cav{width:26px;height:26px;border-radius:50%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.cav.ai{background:rgba(198,241,53,.12);color:var(--lime);font-weight:700;font-size:9px;font-family:var(--fd);letter-spacing:.5px}
+.cbubble{background:var(--bg3);border:1px solid var(--b1);border-radius:10px;padding:8px 12px;font-size:12px;line-height:1.6;color:var(--t1)}
+.cmsg.user .cbubble{background:rgba(198,241,53,.08);border-color:rgba(198,241,53,.2)}
+.tdot{width:4px;height:4px;background:var(--t3);border-radius:50%;animation:bounce 1.2s infinite}
+.tdot:nth-child(2){animation-delay:.2s}
+.tdot:nth-child(3){animation-delay:.4s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+.cp-suggs{padding:6px 14px 0;display:flex;gap:5px;flex-wrap:wrap;flex-shrink:0}
+.csugg{background:var(--bg3);border:1px solid var(--b1);border-radius:16px;color:var(--t2);font-size:10px;font-weight:500;padding:3px 10px;cursor:pointer;transition:all .15s;font-family:var(--fb);white-space:nowrap}
+.csugg:hover{border-color:rgba(198,241,53,.3);color:var(--lime)}
+.cp-inp{padding:10px 12px;border-top:1px solid var(--b1);display:flex;gap:7px;flex-shrink:0;background:var(--bg3)}
+.cinput{flex:1;background:var(--bg2);border:1px solid var(--b1);border-radius:var(--rsm);color:var(--t1);font-size:12px;padding:8px 12px;font-family:var(--fb);outline:none;transition:border-color .15s}
+.cinput:focus{border-color:rgba(198,241,53,.4)}
+.cinput::placeholder{color:var(--t4)}
+.csend{background:var(--lime);border:none;border-radius:var(--rsm);width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#000;flex-shrink:0;transition:opacity .15s}
+.csend:hover{opacity:.82}
+
+/* ── Settings ── */
+.sov{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:900;display:none;align-items:center;justify-content:center}
+.sov.open{display:flex}
+.sbox{background:var(--bg2);border:1px solid var(--b2);border-radius:18px;padding:26px;width:min(460px,90vw)}
+.stitle{font-family:var(--fd);font-size:20px;letter-spacing:2px;margin-bottom:18px}
+.sfield{margin-bottom:14px}
+.sfield label{display:block;font-size:10px;color:var(--t2);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;font-weight:700}
+.sfield input{width:100%;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--rsm);color:var(--t1);font-size:13px;padding:8px 12px;font-family:var(--fm);outline:none}
+.sfield input:focus{border-color:var(--b2)}
+.sbtn{background:var(--lime);border:none;border-radius:var(--rsm);color:#000;font-weight:700;font-size:13px;padding:9px 22px;cursor:pointer;font-family:var(--fb);transition:opacity .15s}
+.sbtn:hover{opacity:.85}
+
+/* ── Ground & Weather ── */
+.grd-section-lbl{font-family:var(--fd);font-size:13px;letter-spacing:2px;color:var(--t2);margin-bottom:10px}
+
+.weather-card{background:var(--bg2);border:1px solid var(--b1);border-radius:14px;overflow:hidden}
+.wx-now{display:flex;align-items:flex-start;gap:14px;padding:18px 20px 14px;border-bottom:1px solid var(--b1);flex-wrap:wrap}
+.wx-icon{font-size:44px;line-height:1;flex-shrink:0}
+.wx-main{flex:1;min-width:120px}
+.wx-temp{font-family:var(--fd);font-size:48px;letter-spacing:2px;line-height:1;color:var(--t1)}
+.wx-cond{font-size:13px;color:var(--t2);font-weight:500;margin-top:3px}
+.wx-loc{font-size:10px;color:var(--t3);font-family:var(--fm);margin-top:4px}
+.wx-alert{background:rgba(255,184,48,.09);border:1px solid rgba(255,184,48,.25);border-radius:8px;padding:9px 12px;display:flex;align-items:flex-start;gap:8px;flex:2;min-width:220px}
+.wx-alert-icon{font-size:14px;line-height:1;flex-shrink:0;margin-top:1px}
+.wx-alert-txt{font-size:11px;color:var(--amber);line-height:1.6;font-weight:500}
+
+.wx-hourly-hdr{padding:6px 14px;font-size:8px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3);border-bottom:1px solid var(--b1);background:var(--bg3)}
+.wx-hourly{display:flex;border-bottom:1px solid var(--b1);overflow-x:auto;scrollbar-width:none}
+.wx-hourly::-webkit-scrollbar{display:none}
+.wx-hr{flex:1;min-width:72px;padding:10px 6px;text-align:center;border-right:1px solid var(--b1);flex-shrink:0}
+.wx-hr:last-child{border-right:none}
+.wx-hr.active{background:rgba(198,241,53,.06)}
+.wx-hr-time{font-size:9px;font-weight:700;color:var(--t3);font-family:var(--fm);margin-bottom:5px}
+.wx-hr.active .wx-hr-time{color:var(--lime)}
+.wx-hr-icon{font-size:18px;line-height:1;margin-bottom:4px}
+.wx-hr-temp{font-family:var(--fm);font-size:13px;font-weight:700;color:var(--t1);margin-bottom:2px}
+.wx-hr-rain{font-size:10px;color:var(--cyan);font-weight:700;margin-bottom:2px}
+.wx-hr-wind{font-size:9px;color:var(--t3);font-weight:500}
+
+.wx-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:0}
+.wx-stat{padding:10px 14px;border-right:1px solid var(--b1);border-top:0}
+.wx-stat:nth-child(3n){border-right:none}
+.wx-stat:nth-child(n+4){border-top:1px solid var(--b1)}
+.wx-s-lbl{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:3px}
+.wx-s-val{font-family:var(--fm);font-size:13px;font-weight:600;color:var(--t1)}
+
+.grd-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:640px){.grd-grid{grid-template-columns:repeat(2,1fr)}}
+.grd-stat-card{background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:14px 12px;text-align:center}
+.grd-big{font-family:var(--fd);font-size:38px;letter-spacing:2px;line-height:1;margin-bottom:4px}
+.grd-lbl{font-size:9px;color:var(--t2);text-transform:uppercase;letter-spacing:.8px;font-weight:700}
+.grd-table-wrap{overflow-x:auto}
+
+.grd-phase-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(max-width:640px){.grd-phase-row{grid-template-columns:1fr}}
+.grd-phase{background:var(--bg2);border:1px solid var(--b1);border-radius:10px;padding:14px}
+.grd-phase-name{font-size:11px;font-weight:700;color:var(--t1);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.grd-phase-name span{font-size:9px;color:var(--t3);font-weight:500;font-family:var(--fm)}
+.grd-phase-vals{display:flex;flex-direction:column;gap:6px}
+.grd-phase-vals div{display:flex;justify-content:space-between;align-items:center;font-size:11px}
+.grd-phase-vals div span:first-child{font-family:var(--fm);font-size:15px;font-weight:700}
+.grd-phase-vals div span:last-child{color:var(--t3);font-size:10px;font-weight:500}
+@media(max-width:768px){
+  .sh-score{font-size:36px}
+  .sh-wkt{font-size:24px}
+  .mom-sidebar{display:none}
+  .match-body{grid-template-columns:1fr}
+}
+@media(max-width:480px){
+  .page{padding:0 12px}
+  .score-hero{padding:18px 16px}
+}
+
+:root{
+  /* ── Dark zones (nav, score strip, sidebar, footer) ── */
+  --dk:#000; --dk2:#0d0d0d; --dk3:#1a1a1a; --dk4:#252525; --dk5:#2e2e2e;
+
+  /* ── Light zones (tables, cards, content) ── */
+  --lt:#fff; --lt2:#f8f8f8; --lt3:#f2f2f2; --lt4:#e8e8e8; --lt5:#d8d8d8;
+
+  /* ── Page shell ── */
+  --pg:#e9e9e9;
+
+  /* ── Brand: navy replaces lime everywhere ── */
+  --navy:#1d4ed8;        /* primary brand — NBA blue          */
+  --navy-light:#3b82f6;  /* hover / lighter variant           */
+  --navy-dark:#1e3a8a;   /* deep navy for text on light bg    */
+  --navy-bg:rgba(29,78,216,.12); /* subtle navy fill          */
+  --navy-bd:rgba(29,78,216,.35); /* navy border               */
+
+  /* ── Functional colours ── */
+  --red:#dc2626; --amber:#d97706; --cyan:#0891b2; --green:#15803d;
+
+  /* ── Dark zone text ── */
+  --dt1:#ffffff; --dt2:#a3a3a3; --dt3:#525252; --dt4:#2a2a2a;
+  --db1:rgba(255,255,255,.12); --db2:rgba(255,255,255,.22);
+
+  /* ── Light zone text ── */
+  --lt-t1:#000000; --lt-t2:#404040; --lt-t3:#737373; --lt-t4:#a8a8a8;
+  --lt-b1:#e5e5e5; --lt-b2:#c8c8c8;
+
+  /* ── Type ── */
+  --fd:'Bebas Neue',sans-serif;
+  --fb:'DM Sans',system-ui,sans-serif;
+  --fm:'JetBrains Mono',monospace;
+  --r:12px; --rsm:8px;
+}
+
+/* ═══ SHARED SHELL — nav, ticker, footer, settings ═══ */
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--pg);color:var(--lt-t1);font-family:var(--fb);font-size:15px;
+     line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--lt4);border-radius:4px}
+
+/* TICKER — navy bar */
+.ticker{background:var(--navy);height:28px;display:flex;align-items:center;overflow:hidden}
+.ticker-label{background:#000;color:var(--navy-light);font-family:var(--fd);font-size:11px;
+  letter-spacing:1.5px;padding:0 14px;height:100%;display:flex;align-items:center;flex-shrink:0}
+.ticker-track{display:flex;animation:ticker-scroll 50s linear infinite;white-space:nowrap}
+.ticker-item{font-size:11px;font-weight:600;color:#fff;padding:0 20px;
+  border-right:1px solid rgba(255,255,255,.15);display:flex;align-items:center;gap:6px;height:28px}
+.tdot{width:5px;height:5px;border-radius:50%;background:#fca5a5;animation:pulse 1s infinite;flex-shrink:0}
+@keyframes ticker-scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* NAV — pure black, underline tabs */
+.cricnav{background:#000;border-bottom:2px solid var(--navy);position:sticky;top:0;z-index:300}
+.cricnav-inner{max-width:1440px;margin:0 auto;padding:0 20px;height:52px;
+  display:flex;align-items:center}
+.cricnav-logo{font-family:var(--fd);font-size:22px;letter-spacing:3px;
+  flex-shrink:0;display:flex;align-items:baseline;gap:1px;
+  text-decoration:none;margin-right:24px;cursor:pointer}
+.cricnav-logo b{color:#fff}
+.cricnav-logo em{color:var(--navy-light);font-style:normal}
+.cricnav-logo s{color:#444;font-size:10px;font-family:var(--fb);margin-left:5px;
+  font-weight:400;text-decoration:none}
+.cricnav-tabs{display:flex;flex:1;height:52px;overflow-x:auto;scrollbar-width:none}
+.cricnav-tabs::-webkit-scrollbar{display:none}
+.crtab{background:none;border:none;border-bottom:3px solid transparent;
+  color:#666;font-family:var(--fb);font-size:12px;font-weight:600;
+  padding:0 14px;height:100%;cursor:pointer;white-space:nowrap;
+  transition:color .15s,border-color .15s;letter-spacing:.3px}
+.crtab:hover{color:#ccc;border-bottom-color:rgba(255,255,255,.2)}
+.crtab.active{color:#fff;border-bottom-color:var(--navy-light);font-weight:700}
+.cricnav-r{display:flex;gap:8px;align-items:center;flex-shrink:0;margin-left:16px}
+.cricnav-btn{width:30px;height:30px;background:#1a1a1a;border:1px solid #2a2a2a;
+  border-radius:6px;color:#666;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;font-size:13px;transition:all .15s}
+.cricnav-btn:hover{border-color:#444;color:#fff}
+
+/* SETTINGS MODAL */
+.cric-settings{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:900;
+  display:none;align-items:center;justify-content:center}
+.cric-settings.open{display:flex}
+.cric-settings-box{background:#fff;border-radius:16px;padding:26px;width:min(440px,90vw)}
+.cric-settings-title{font-family:var(--fd);font-size:20px;letter-spacing:2px;
+  color:#000;margin-bottom:18px}
+.cric-sfield{margin-bottom:14px}
+.cric-sfield label{display:block;font-size:9px;color:#888;text-transform:uppercase;
+  letter-spacing:1px;margin-bottom:5px;font-weight:800}
+.cric-sfield input{width:100%;background:#f2f2f2;border:1px solid #e5e5e5;
+  border-radius:6px;color:#000;font-size:13px;padding:8px 12px;
+  font-family:var(--fm);outline:none}
+.cric-sfield input:focus{border-color:var(--navy)}
+.cric-sbtn{background:var(--navy);border:none;border-radius:6px;color:#fff;
+  font-weight:700;font-size:13px;padding:9px 22px;cursor:pointer;font-family:var(--fb)}
+.cric-sbtn:hover{background:var(--navy-light)}
+
+/* FOOTER */
+.cricfooter{background:#000;padding:36px 0 24px;margin-top:0}
+.cricfooter-inner{max-width:1440px;margin:0 auto;padding:0 20px}
+.cricfooter-cols{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:28px;margin-bottom:28px}
+.cricfooter-col-title{font-size:9px;font-weight:800;letter-spacing:1.5px;
+  text-transform:uppercase;color:#444;margin-bottom:12px}
+a.cricfooter-link,span.cricfooter-link{display:block;font-size:12px;color:#555;
+  text-decoration:none;margin-bottom:7px;cursor:pointer;transition:color .15s}
+a.cricfooter-link:hover,span.cricfooter-link:hover{color:#888}
+.cricfooter-bottom{border-top:1px solid #1a1a1a;padding-top:16px;
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.cricfooter-copy{font-size:11px;color:#444}
+.cricfooter-links{display:flex;gap:18px;flex-wrap:wrap}
+.cricfooter-links a{font-size:11px;color:#444;text-decoration:none}
+.cricfooter-links a:hover{color:#666}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .cricfooter-cols{grid-template-columns:1fr 1fr}
+  .cricnav-logo s{display:none}
+}
+@media(max-width:600px){
+  .cricfooter-cols{grid-template-columns:1fr}
+  .cricnav-inner{padding:0 12px}
+  .crtab{padding:0 10px;font-size:11px}
+}
+
+/* ══ NBA/NAVY VISUAL OVERRIDES ══════════════════════
+   Dark zones: black  |  Content zones: white
+   Brand accent: --navy (#1d4ed8) replaces all greens
+═══════════════════════════════════════════════════ */
+
+/* ── SCORES / MATCH CARDS ── */
+.mc,.match-grid .mc{
+  background:#fff;border:none;border-top:3px solid #e5e5e5;
+  border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.mc:hover{box-shadow:0 4px 14px rgba(0,0,0,.14);transform:translateY(-2px)}
+.mc.live{border-top-color:var(--red)}
+.mc.upcoming{border-top-color:#ccc}
+.mc-fmt{color:#bbb}
+.mc-st.live{color:var(--red)}
+.mc-st.upcoming{color:var(--amber)}
+.mc-st.result{color:#bbb}
+.mc-tn{color:#000}
+.mc-sc{color:#000;font-weight:700}
+.mc-sc.dim{color:#bbb}
+.mc-note{color:#888}
+
+/* ── LANDING MATCH CARDS (mcard) ── */
+.mcard{background:#fff;border:none;border-top:3px solid #e5e5e5;border-radius:10px;
+  box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.mcard:hover{box-shadow:0 4px 14px rgba(0,0,0,.14);transform:translateY(-2px)}
+.mcard.live{border-top-color:var(--red)}
+.mcard.upcoming{border-top-color:#ccc}
+.mcard.result{border-top-color:#e5e5e5}
+.mc-badge.live{background:rgba(220,38,38,.08);color:var(--red)}
+.mc-badge.upcoming{background:rgba(217,119,6,.08);color:var(--amber)}
+.mc-badge.result{background:#f2f2f2;color:#bbb}
+.mc-name{color:#000}
+.mc-score{color:#000;font-weight:700}
+.mc-score.dim{color:#bbb}
+.mc-footer{color:#888;border-top:1px solid #f0f0f0}
+.mc-cta{color:var(--navy-dark);font-weight:700}
+
+/* ── SCORE HERO (match page) ── */
+.score-hero{background:#000;border-radius:0;border:none;
+  border-bottom:1px solid #1a1a1a;margin-top:0;padding:20px 24px 0}
+.score-hero::after{display:none}
+.live-pill{background:var(--red);color:#fff}
+.sh-match{color:#777}
+.sh-tname{color:#666}
+.sh-score{color:#fff}
+.sh-wkt{color:#444}
+.sh-ov{color:#555}
+.sh-vs{color:#333}
+.sh-need{background:rgba(217,119,6,.1);border-color:rgba(217,119,6,.3);color:#f59e0b}
+.sh-lbl{color:#555}
+.sh-val{color:var(--navy-light)}
+.sh-stats{background:#0a0a0a;margin:0 -24px;padding:10px 24px;
+  border-top:1px solid #1a1a1a;border-bottom:1px solid #1a1a1a}
+
+/* ── SUB TABS (match page) ── */
+.topnav{background:#000;border-bottom:1px solid #1a1a1a}
+.topnav-inner .logo b{color:#fff}
+.topnav-inner .logo em{color:var(--navy-light)}
+.tnav{color:#666;border-radius:0;border-bottom:3px solid transparent}
+.tnav:hover{color:#ccc;background:none;border-bottom-color:rgba(255,255,255,.2)}
+.tnav.on{color:#fff;background:none;border-bottom-color:var(--navy-light);font-weight:700}
+
+/* Match body white content zone */
+.match-body{background:#fff;border-radius:0 0 8px 8px}
+.left-col{background:#fff;padding-right:0}
+
+/* Sub tabs — NBA underline */
+.sub-tabs{background:#fff;border:none;border-bottom:1px solid #e5e5e5;
+  border-radius:0;padding:0 20px;margin-bottom:0}
+.stab{color:#999;border-radius:0;border-bottom:3px solid transparent;padding:12px 16px}
+.stab:hover{color:#333;background:none}
+.stab.on{background:none;color:#000;border-bottom-color:#000;box-shadow:none;font-weight:700}
+.sub-pg.on{padding:20px}
+
+/* ── SCORECARD ── */
+.inn-btn{background:#f2f2f2;border:1px solid #e5e5e5;color:#666}
+.inn-btn.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.inn-stats{background:#fff;border:none;border-bottom:1px solid #e5e5e5;
+  border-radius:0;padding:0;margin:0 -20px 18px}
+.inn-stats>div{padding:14px 12px;border-right:1px solid #e5e5e5}
+.inn-stats>div:last-child{border-right:none}
+.ins-val{color:#000}
+.ins-lbl{color:#999}
+.tbl-section-lbl{color:#000;border-bottom:2px solid #000}
+table.ct th{background:#f5f5f5;color:#999;border-bottom:1px solid #e5e5e5}
+table.ct td{color:#333;border-bottom:1px solid #f0f0f0}
+table.ct tr:hover td{background:#fafafa}
+.pn{color:#000}
+.pd{color:#999}
+.hl-r{color:#000;font-weight:800;background:var(--navy);color:#fff;
+  padding:1px 5px;border-radius:3px;font-size:12px}
+.hl-w{color:var(--red);font-weight:800}
+.hl-e{color:var(--navy-dark);font-weight:700}
+
+/* ── COMMENTARY ── */
+.flavor-bar{background:#f2f2f2;border:1px solid #e5e5e5}
+.flv{color:#666}
+.flv:hover{color:#000;background:#e5e5e5}
+.flv.on-n{background:var(--navy);color:#fff}
+.flv.on-h{background:#0891b2;color:#fff}
+.flv.on-a{background:var(--amber);color:#000}
+.flv.on-m{background:var(--red);color:#fff}
+.ccard{background:#fff;border:none;border-left:3px solid #e5e5e5;
+  border-bottom:1px solid #f0f0f0;border-radius:0}
+.ccard.six{border-left-color:#0891b2}
+.ccard.four{border-left-color:var(--navy)}
+.ccard.wicket{border-left-color:var(--red)}
+.ccard.dot{border-left-color:#e5e5e5}
+.ctxt{color:#000}
+.over-bdg{background:#f2f2f2;color:#666;border:1px solid #e5e5e5}
+.bres.six{background:rgba(8,145,178,.1);color:#0e7490}
+.bres.four{background:rgba(29,78,216,.1);color:var(--navy-dark)}
+.bres.wicket{background:rgba(220,38,38,.1);color:var(--red)}
+.bres.dot{background:#f2f2f2;color:#999}
+.bres.run{background:#f2f2f2;color:#666}
+.cplayers{color:#888}
+.rbtn{background:#f2f2f2;border:1px solid #e5e5e5;color:#666}
+.rbtn.on{background:rgba(29,78,216,.08);border-color:var(--navy-bd);color:var(--navy-dark)}
+
+/* ── IMPACT CARDS ── */
+.imp-team-hdr{background:#f2f2f2;border:1px solid #e5e5e5}
+.imp-tname{color:#000}
+.imp-sc{background:#e5e5e5;color:#666}
+.ipc{background:#fff;border:1px solid #e5e5e5;border-radius:10px}
+.ipc:hover{border-color:#bbb;transform:translateY(-2px)}
+.ipc.r1{border-color:rgba(29,78,216,.3)}
+.ipc.r1::before{background:linear-gradient(90deg,var(--navy),rgba(29,78,216,.2))}
+.ipc.r2{border-color:#ccc}
+.ipc.r3{border-color:rgba(180,140,0,.3)}
+.ipc-head{border-bottom:1px solid #f0f0f0}
+.r1 .ipc-rank{background:rgba(29,78,216,.1);color:var(--navy-dark);border-color:var(--navy-bd)}
+.r2 .ipc-rank{background:#f2f2f2;color:#555;border-color:#ccc}
+.r3 .ipc-rank{background:rgba(180,140,0,.08);color:#7a5800;border-color:rgba(180,140,0,.3)}
+.ipc-name{color:#000}
+.ipc-team{color:#666}
+.ipc-role{background:#f2f2f2;color:#666;border-color:#e5e5e5}
+.r1 .ipc-score{color:var(--navy-dark)}
+.r2 .ipc-score{color:#555}
+.r3 .ipc-score{color:#7a5800}
+.r1 .ipc-bar-f{background:var(--navy)}
+.r2 .ipc-bar-f{background:#999}
+.r3 .ipc-bar-f{background:#c8960a}
+.ipc-bar{background:#e5e5e5}
+.ipc-dim{background:#f5f5f5;border:1px solid #e5e5e5}
+.ipc-dv.bat{color:var(--navy-dark)}
+.ipc-dv.bowl{color:#0e7490}
+.ipc-dv.fld{color:#7a5800}
+.ipc-dv.na{color:#ccc}
+.ipc-dl{color:#999}
+.ipc-desc{color:#555;border-top-color:#f0f0f0}
+
+/* ── VENUE & CONDITIONS ── */
+.weather-card{background:#fff;border:1px solid #e5e5e5}
+.wx-temp{color:#000}
+.wx-cond{color:#555}
+.wx-loc{color:#999}
+.wx-hourly-hdr{background:#f2f2f2;color:#888;border-bottom:1px solid #e5e5e5}
+.wx-hr{border-right-color:#e5e5e5}
+.wx-hr.active{background:rgba(29,78,216,.04)}
+.wx-hr-time{color:#999}
+.wx-hr.active .wx-hr-time{color:var(--navy-dark)}
+.wx-hr-temp{color:#000}
+.wx-hr-rain{color:#0891b2}
+.wx-hr-wind{color:#888}
+.wx-s-lbl{color:#999}
+.wx-s-val{color:#000}
+.grd-section-lbl{color:#000}
+.grd-stat-card{background:#fff;border:1px solid #e5e5e5}
+.grd-lbl{color:#999}
+.grd-phase{background:#fff;border:1px solid #e5e5e5}
+.grd-phase-name{color:#000}
+
+/* ── MOMENTUM SIDEBAR ── */
+.mom-sidebar{background:#000;padding:12px;border-radius:0 0 8px 0}
+.mom-panel{background:#111;border:none;border-radius:8px}
+.mom-panel-hdr{border-bottom:1px solid #1a1a1a}
+.mom-panel-name{color:#fff}
+.mom-panel-score{color:#666}
+.ym-btn{border-color:#1a1a1a;color:#666}
+.ym-btn:hover{color:#ccc;border-color:#333}
+.ym-btn.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.mom-legend{background:#111;border:none;border-radius:8px;color:#666}
+.drag-handle::before{background:#2a2a2a}
+.drag-handle:hover::before,.drag-handle.dragging::before{background:var(--navy)}
+
+/* ── CHAT WIDGET ── */
+.chat-fab{background:var(--navy);box-shadow:0 8px 28px rgba(29,78,216,.3)}
+.chat-fab:hover{box-shadow:0 12px 36px rgba(29,78,216,.5)}
+.cp-hdr{background:#111;border-bottom:1px solid #1a1a1a}
+.cp-title{color:#fff}
+.cp-sub{color:#555}
+.chat-msgs{background:#0a0a0a}
+.cbubble{background:#1a1a1a;border:1px solid #252525;color:#fff}
+.cmsg.user .cbubble{background:rgba(29,78,216,.1);border-color:rgba(29,78,216,.25)}
+.cav{background:#222}
+.cav.ai{background:rgba(29,78,216,.15);color:var(--navy-light);font-family:var(--fd)}
+.cp-suggs{background:#0a0a0a}
+.csugg{background:#1a1a1a;border:1px solid #252525;color:#888}
+.csugg:hover{border-color:var(--navy-bd);color:var(--navy-light)}
+.cp-inp{background:#111;border-top:1px solid #1a1a1a}
+.cinput{background:#0a0a0a;border:1px solid #252525;color:#fff}
+.cinput:focus{border-color:var(--navy-bd)}
+.cinput::placeholder{color:#444}
+.csend{background:var(--navy);color:#fff}
+.csend:hover{opacity:.85}
+
+/* ── SETTINGS (old class names — still works) ── */
+.sov{background:rgba(0,0,0,.75)}
+.sbox{background:#fff;border:1px solid #e5e5e5}
+.stitle{color:#000}
+.sfield label{color:#666}
+.sfield input{background:#f2f2f2;border:1px solid #e5e5e5;color:#000}
+.sfield input:focus{border-color:var(--navy)}
+.sbtn{background:var(--navy);color:#fff}
+.sbtn:hover{background:var(--navy-light)}
+.ico-btn{background:#1a1a1a;border-color:#252525;color:#666}
+.ico-btn:hover{border-color:#444;color:#fff}
+
+/* ── LANDING: AI STRIP ── */
+.ai-strip{background:rgba(29,78,216,.06);border:1px solid rgba(29,78,216,.2)}
+.ai-strip-lbl{color:var(--navy-dark)}
+.ai-strip-txt{color:#555}
+
+/* ── LANDING: CONTENT TABS ── */
+.content-tabs{background:#fff;border-bottom:1px solid #e5e5e5;padding:0}
+.ctab{color:#999;border-bottom:3px solid transparent}
+.ctab:hover{color:#333}
+.ctab.on{color:#000;border-bottom-color:#000}
+
+/* ── LANDING: AI REPORT ── */
+.ai-report{background:#fff;border:1px solid #e5e5e5}
+.air-badge{background:rgba(29,78,216,.08);border-color:rgba(29,78,216,.25);color:var(--navy-dark)}
+.air-match{color:#888}
+.air-headline{color:#000}
+.air-body{color:#444}
+.air-stats{border-top:1px solid #e5e5e5}
+.air-stat-v{color:#000;font-weight:800}
+.air-stat-l{color:#999}
+.air-gen-btn{background:var(--navy);color:#fff}
+.air-gen-btn:hover{background:var(--navy-light)}
+
+/* ── LANDING: ARTICLES ── */
+.acard{background:#fff;border:none;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.acard:hover{box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.acard-cat{color:#888}
+.acard-hl{color:#000}
+.acard-meta span{color:#888}
+.acard-tag,.ntag{background:var(--navy);color:#fff}
+
+/* ── LANDING: SERIES ── */
+.scard{background:#fff;border:1px solid #e5e5e5;border-radius:10px}
+.scard:hover{border-color:#bbb}
+.scard-name{color:#000}
+.scard-sub{color:#888}
+.scard-badge.live{background:rgba(220,38,38,.08);color:var(--red)}
+.scard-badge.upcoming{background:rgba(217,119,6,.08);color:var(--amber)}
+.scard-badge.ended{background:#f2f2f2;color:#bbb}
+
+/* ── LANDING: TEAMS ── */
+.tcard{background:#fff;border:1px solid #e5e5e5;border-radius:10px}
+.tcard:hover{border-color:var(--navy);box-shadow:0 3px 10px rgba(29,78,216,.1)}
+.tcard-name{color:#000}
+.tcard-rank{color:#888}
+
+/* ── LANDING: SIDEBAR ── */
+.sidebar-box{background:#fff;border:1px solid #e5e5e5}
+.sb-title{color:#000}
+.sb-more{color:var(--navy-dark);font-weight:700;background:none;border:none;cursor:pointer}
+.rk-item:hover{background:#fafafa}
+.rk-name{color:#000}
+.rk-pts{color:#000;font-weight:700}
+.rk-chg.up{color:var(--green)}
+.rk-chg.dn{color:var(--red)}
+.rk-chg.eq{color:#bbb}
+.tr-item{border-bottom:1px solid #f5f5f5}
+.tr-item:hover{background:#fafafa}
+.tr-hl{color:#000}
+.tr-meta{color:#bbb}
+.poll-q{color:#000}
+.poll-opt{background:#f5f5f5;border:1px solid #e5e5e5;color:#666}
+.poll-opt:hover{border-color:var(--navy-bd);color:var(--navy-dark)}
+.poll-opt.voted{border-color:var(--navy);color:#000}
+.poll-bar{background:rgba(29,78,216,.08)}
+.poll-pct{color:var(--navy-dark)}
+.poll-total{color:#bbb}
+
+/* ── NEWS CARDS ── */
+.ncard{background:#fff;border:none;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.ncard:hover{box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.nhl{color:#000}
+.nmeta{color:#888}
+.nrbtn{color:#888}
+.nrbtn:hover{color:#000}
+
+/* ── RANKINGS inline styles override ── */
+[style*="border-bottom:2px solid var(--lime)"]{border-bottom-color:var(--navy) !important}
+[style*="color:var(--lime)"]{color:var(--navy-light) !important}
+
+</style>
+</head>
+<body>
+
+<!-- TICKER -->
+<div class="ticker">
+  <div class="ticker-label">LIVE</div>
+  <div style="overflow:hidden;flex:1;display:flex">
+    <div class="ticker-track" id="tkr"></div>
+  </div>
+</div>
+<!-- NAV -->
+<header class="cricnav">
+  <div class="cricnav-inner">
+    <a href="index.html" class="cricnav-logo"><b>CRIC</b><em>AI</em><s>/ INTELLIGENCE</s></a>
+    <nav class="cricnav-tabs" id="cricnav-tabs">
+      <button class="crtab" onclick="location.href='index.html'">Home</button>
+      <button class="crtab active" >Match</button>
+      <button class="crtab" onclick="location.href='players.html'">Players</button>
+      <button class="crtab" >Series</button>
+      <button class="crtab" >Teams</button>
+      <button class="crtab" >Rankings</button>
+      <button class="crtab" >News</button>
+    </nav>
+    <div class="cricnav-r">
+      <button class="cricnav-btn" onclick="document.getElementById('cric-settings').classList.add('open')" title="Settings">&#9881;</button>
+    </div>
+  </div>
+</header>
+<!-- SETTINGS -->
+<div class="cric-settings" id="cric-settings" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="cric-settings-box">
+    <div class="cric-settings-title">SETTINGS</div>
+    <div class="cric-sfield">
+      <label>Claude API Key</label>
+      <input id="api-key-inp" type="password" placeholder="sk-ant-api03-…"/>
+    </div>
+    <div class="cric-sfield">
+      <label>Cricbuzz API Key</label>
+      <input id="cbz-inp" type="text" placeholder="Enter Cricbuzz key"/>
+    </div>
+    <div style="display:flex;gap:12px;align-items:center">
+      <button class="cric-sbtn" onclick="saveSettings()">Save</button>
+      <span id="smsg" style="font-size:11px;color:var(--navy);display:none">Saved ✓</span>
+    </div>
+  </div>
+</div>
+
+
+
+</div>
+
+<!-- ════ MAIN ════ -->
+<div class="page">
+
+<!-- ── SCORES ── -->
+<div class="tab-pg" id="tab-scores">
+  <div class="match-grid" id="match-grid"></div>
+</div>
+
+<!-- ── MATCH ── -->
+<div class="tab-pg on" id="tab-match">
+
+  <!-- Score hero -->
+  <div class="score-hero">
+    <div class="sh-meta">
+      <div class="live-pill">LIVE</div>
+      <span class="sh-match" id="sh-title">NZ vs SA · 2nd T20I · SuperSport Park, Centurion</span>
+      <span style="font-size:10px;color:var(--t3);margin-left:auto;font-family:var(--fm)" id="sh-match-id">ID 122698</span>
+    </div>
+    <div class="sh-scores">
+      <div class="sh-team" id="sh-score1">
+        <div class="sh-tname">NEW ZEALAND</div>
+        <div class="sh-score">186<span class="sh-wkt">/6</span></div>
+        <div class="sh-ov">20.0 OV · COMPLETED</div>
+      </div>
+      <div class="sh-mid">
+        <div class="sh-vs">VS</div>
+        <div class="sh-need" id="sh-need">SA need 47 off 24</div>
+      </div>
+      <div class="sh-team away" id="sh-score2">
+        <div class="sh-tname">SOUTH AFRICA</div>
+        <div class="sh-score">140<span class="sh-wkt">/4</span></div>
+        <div class="sh-ov">16.0 OV · BATTING</div>
+      </div>
+    </div>
+    <div class="sh-stats">
+      <div class="sh-stat"><span class="sh-lbl">CRR</span><span class="sh-val">8.75</span></div>
+      <div class="sh-stat"><span class="sh-lbl">RRR</span><span class="sh-val">11.75</span></div>
+      <div class="sh-stat"><span class="sh-lbl">Last 5 Ov</span><span class="sh-val">54 runs</span></div>
+      <div class="sh-stat"><span class="sh-lbl">Partnership</span><span class="sh-val">48 (28)</span></div>
+      <div class="sh-stat"><span class="sh-lbl">Batting</span><span class="sh-val">De Kock · Klaasen</span></div>
+      <div class="sh-stat"><span class="sh-lbl">Win Prob</span><span class="sh-val" style="color:var(--red)">NZ 62%</span></div>
+    </div>
+  </div>
+
+  <!-- Two-column body -->
+  <div class="match-body">
+
+    <!-- LEFT: 3 sub-tabs -->
+    <div class="left-col">
+      <div class="sub-tabs" id="stabs">
+        <button class="stab on" data-sub="scorecard">Scorecard</button>
+        <button class="stab" data-sub="commentary">Commentary</button>
+        <button class="stab" data-sub="impact">Impact</button>
+        <button class="stab" data-sub="ground">Venue &amp; Conditions</button>
+      </div>
+
+      <!-- Scorecard -->
+      <div class="sub-pg on" id="sub-scorecard">
+        <div class="inn-switcher" id="inn-sw">
+          <button class="inn-btn on" data-inn="1">🇳🇿 NZ 1st Innings</button>
+          <button class="inn-btn" data-inn="2">🇿🇦 SA 2nd Innings</button>
+        </div>
+        <div class="inn-stats" id="inn-stats"></div>
+        <div class="tbl-section-lbl">BATTING</div>
+        <div class="twrap" id="bat-tbl"></div>
+        <div class="tbl-section-lbl">BOWLING</div>
+        <div class="twrap" id="bowl-tbl"></div>
+        <div style="height:60px"></div>
+      </div>
+
+      <!-- Commentary -->
+      <div class="sub-pg" id="sub-commentary">
+        <div class="flavor-bar">
+          <button class="flv on-n" onclick="setFlavor('n',this)">🎙 Neutral</button>
+          <button class="flv" onclick="setFlavor('h',this)">🇳🇿 NZ Fan</button>
+          <button class="flv" onclick="setFlavor('a',this)">🇿🇦 SA Fan</button>
+          <button class="flv" onclick="setFlavor('m',this)">😂 Meme</button>
+        </div>
+        <div class="comm-list" id="comm-list"></div>
+        <div style="height:60px"></div>
+      </div>
+
+      <!-- Impact -->
+      <div class="sub-pg" id="sub-impact">
+        <div class="imp-page" id="imp-page"></div>
+        <div style="height:60px"></div>
+      </div>
+
+      <!-- Ground & Conditions -->
+      <div class="sub-pg" id="sub-ground">
+
+        <!-- Weather card — live data: Centurion, 17 Mar 2026 -->
+        <div class="grd-section-lbl">MATCH DAY WEATHER — CENTURION</div>
+        <div class="weather-card">
+
+          <!-- Current conditions -->
+          <div class="wx-now">
+            <div class="wx-icon">🌤</div>
+            <div class="wx-main">
+              <div class="wx-temp">15°C</div>
+              <div class="wx-cond">Partly Cloudy · Night</div>
+              <div class="wx-loc">SuperSport Park, Centurion · Tue 17 Mar 2026</div>
+            </div>
+            <div class="wx-alert">
+              <div class="wx-alert-icon">⚠️</div>
+              <div class="wx-alert-txt">95% rain chance today — dew highly likely from over 14. Outfield will quicken significantly in the 2nd innings. Advantage chasing side grows as match progresses.</div>
+            </div>
+          </div>
+
+          <!-- Same-day hourly strip: match hours 17:00–22:00 local -->
+          <div class="wx-hourly-hdr">HOURLY — MATCH HOURS (LOCAL TIME)</div>
+          <div class="wx-hourly">
+            <div class="wx-hr">
+              <div class="wx-hr-time">17:00</div>
+              <div class="wx-hr-icon">⛅</div>
+              <div class="wx-hr-temp">22°C</div>
+              <div class="wx-hr-rain">40%</div>
+              <div class="wx-hr-wind">N 12</div>
+            </div>
+            <div class="wx-hr">
+              <div class="wx-hr-time">18:00</div>
+              <div class="wx-hr-icon">🌦</div>
+              <div class="wx-hr-temp">21°C</div>
+              <div class="wx-hr-rain">60%</div>
+              <div class="wx-hr-wind">NE 13</div>
+            </div>
+            <div class="wx-hr active">
+              <div class="wx-hr-time">19:00</div>
+              <div class="wx-hr-icon">🌧</div>
+              <div class="wx-hr-temp">19°C</div>
+              <div class="wx-hr-rain">80%</div>
+              <div class="wx-hr-wind">NE 14</div>
+            </div>
+            <div class="wx-hr">
+              <div class="wx-hr-time">20:00</div>
+              <div class="wx-hr-icon">🌧</div>
+              <div class="wx-hr-temp">17°C</div>
+              <div class="wx-hr-rain">88%</div>
+              <div class="wx-hr-wind">NE 15</div>
+            </div>
+            <div class="wx-hr">
+              <div class="wx-hr-time">21:00</div>
+              <div class="wx-hr-icon">🌧</div>
+              <div class="wx-hr-temp">16°C</div>
+              <div class="wx-hr-rain">92%</div>
+              <div class="wx-hr-wind">NE 14</div>
+            </div>
+            <div class="wx-hr">
+              <div class="wx-hr-time">22:00</div>
+              <div class="wx-hr-icon">🌧</div>
+              <div class="wx-hr-temp">15°C</div>
+              <div class="wx-hr-rain">95%</div>
+              <div class="wx-hr-wind">NE 13</div>
+            </div>
+          </div>
+
+          <!-- Condition stats -->
+          <div class="wx-stats">
+            <div class="wx-stat"><div class="wx-s-lbl">Humidity</div><div class="wx-s-val">61%</div></div>
+            <div class="wx-stat"><div class="wx-s-lbl">Wind</div><div class="wx-s-val">NE 14 km/h</div></div>
+            <div class="wx-stat"><div class="wx-s-lbl">Dew Point</div><div class="wx-s-val">9°C</div></div>
+            <div class="wx-stat"><div class="wx-s-lbl">Visibility</div><div class="wx-s-val">10 km</div></div>
+            <div class="wx-stat"><div class="wx-s-lbl">Dew Impact</div><div class="wx-s-val" style="color:var(--amber)">Medium→High</div></div>
+            <div class="wx-stat"><div class="wx-s-lbl">Pitch</div><div class="wx-s-val">Hard, dry</div></div>
+          </div>
+        </div>
+
+        <!-- Ground records -->
+        <div class="grd-section-lbl" style="margin-top:22px">SUPERPORT PARK — T20I RECORD</div>
+        <div class="grd-grid">
+          <div class="grd-stat-card">
+            <div class="grd-big" style="color:var(--lime)">27</div>
+            <div class="grd-lbl">T20Is Played</div>
+          </div>
+          <div class="grd-stat-card">
+            <div class="grd-big" style="color:var(--lime)">164</div>
+            <div class="grd-lbl">Avg 1st Inn</div>
+          </div>
+          <div class="grd-stat-card">
+            <div class="grd-big" style="color:var(--cyan)">153</div>
+            <div class="grd-lbl">Avg 2nd Inn</div>
+          </div>
+          <div class="grd-stat-card">
+            <div class="grd-big" style="color:var(--amber)">186</div>
+            <div class="grd-lbl">Highest Score</div>
+          </div>
+        </div>
+
+        <div class="grd-section-lbl" style="margin-top:18px">WIN / LOSS BREAKDOWN</div>
+        <div class="grd-table-wrap">
+          <table class="ct">
+            <thead><tr><th>Result</th><th>M</th><th>%</th><th style="text-align:left;padding-left:18px">Context</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><span class="pn">Batting First Wins</span></td>
+                <td style="color:var(--lime);font-weight:700">13</td>
+                <td style="color:var(--lime);font-weight:700">48%</td>
+                <td style="text-align:left;padding-left:18px;color:var(--t2);font-size:11px;font-family:var(--fb)">Higher avg score defends well here</td>
+              </tr>
+              <tr>
+                <td><span class="pn">Batting Second Wins</span></td>
+                <td>10</td><td>37%</td>
+                <td style="text-align:left;padding-left:18px;color:var(--t2);font-size:11px;font-family:var(--fb)">Dew advantage can be decisive</td>
+              </tr>
+              <tr>
+                <td><span class="pn">Tie</span></td>
+                <td style="color:var(--t3)">1</td><td style="color:var(--t3)">4%</td>
+                <td style="text-align:left;padding-left:18px;color:var(--t3);font-size:11px;font-family:var(--fb)">Super Over decided</td>
+              </tr>
+              <tr>
+                <td><span class="pn">No Result</span></td>
+                <td style="color:var(--t3)">3</td><td style="color:var(--t3)">11%</td>
+                <td style="text-align:left;padding-left:18px;color:var(--t3);font-size:11px;font-family:var(--fb)">Rain abandonments — DL applied twice</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pitch + Phase averages -->
+        <div class="grd-section-lbl" style="margin-top:18px">PHASE AVERAGES AT THIS VENUE</div>
+        <div class="grd-phase-row">
+          <div class="grd-phase">
+            <div class="grd-phase-name">Powerplay<span>Ov 1–6</span></div>
+            <div class="grd-phase-vals">
+              <div><span style="color:var(--lime)">46</span><span>avg runs</span></div>
+              <div><span style="color:var(--red)">1.8</span><span>avg wkts</span></div>
+              <div><span style="color:var(--cyan)">7.7</span><span>rpo</span></div>
+            </div>
+          </div>
+          <div class="grd-phase">
+            <div class="grd-phase-name">Middle<span>Ov 7–15</span></div>
+            <div class="grd-phase-vals">
+              <div><span style="color:var(--lime)">74</span><span>avg runs</span></div>
+              <div><span style="color:var(--red)">2.4</span><span>avg wkts</span></div>
+              <div><span style="color:var(--cyan)">8.2</span><span>rpo</span></div>
+            </div>
+          </div>
+          <div class="grd-phase">
+            <div class="grd-phase-name">Death<span>Ov 16–20</span></div>
+            <div class="grd-phase-vals">
+              <div><span style="color:var(--lime)">52</span><span>avg runs</span></div>
+              <div><span style="color:var(--red)">2.1</span><span>avg wkts</span></div>
+              <div><span style="color:var(--cyan)">10.4</span><span>rpo</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="height:60px"></div>
+      </div>
+    </div>
+
+    <!-- Drag handle -->
+    <div class="drag-handle" id="drag-handle"></div>
+
+    <!-- RIGHT: momentum always visible -->
+    <div class="mom-sidebar" id="mom-sidebar">
+
+      <!-- Y-axis toggle -->
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="ym-btn on" id="btn-wp" onclick="setYMode('wp')">Win Prob</button>
+        <button class="ym-btn" id="btn-rr" onclick="setYMode('rr')">Run Rate</button>
+        <button class="ym-btn" style="flex:0;padding:4px 10px" onclick="replayAll()">↺</button>
+      </div>
+
+      <!-- NZ panel -->
+      <div class="mom-panel">
+        <div class="mom-panel-hdr">
+          <div class="mom-panel-title">
+            <span style="font-size:16px">🇳🇿</span>
+            <span class="mom-panel-name">NEW ZEALAND</span>
+          </div>
+          <span class="mom-panel-score">186/6 · 20 ov</span>
+        </div>
+        <canvas class="mom-cv" id="cv-nz" width="340" height="190"></canvas>
+      </div>
+
+      <!-- SA panel -->
+      <div class="mom-panel">
+        <div class="mom-panel-hdr">
+          <div class="mom-panel-title">
+            <div class="live-dot-sm"></div>
+            <span style="font-size:16px">🇿🇦</span>
+            <span class="mom-panel-name">SOUTH AFRICA</span>
+          </div>
+          <span class="mom-panel-score" style="color:var(--red)">140/4* · 16 ov</span>
+        </div>
+        <canvas class="mom-cv" id="cv-sa" width="340" height="190"></canvas>
+        <!-- Chase strip -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--b1)">
+          <div style="padding:7px 8px;text-align:center;border-right:1px solid var(--b1)">
+            <div style="font-size:8px;color:var(--t3);text-transform:uppercase;font-weight:700;letter-spacing:.8px;margin-bottom:2px">Req. RR</div>
+            <div style="font-family:var(--fm);font-size:13px;font-weight:700;color:var(--red)">11.75</div>
+          </div>
+          <div style="padding:7px 8px;text-align:center;border-right:1px solid var(--b1)">
+            <div style="font-size:8px;color:var(--t3);text-transform:uppercase;font-weight:700;letter-spacing:.8px;margin-bottom:2px">Curr. RR</div>
+            <div style="font-family:var(--fm);font-size:13px;font-weight:700;color:var(--lime)">8.75</div>
+          </div>
+          <div style="padding:7px 8px;text-align:center">
+            <div style="font-size:8px;color:var(--t3);text-transform:uppercase;font-weight:700;letter-spacing:.8px;margin-bottom:2px">Need</div>
+            <div style="font-family:var(--fm);font-size:12px;font-weight:700;color:var(--amber)">47 / 24</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Worm panel -->
+      <div class="mom-panel">
+        <div class="mom-panel-hdr">
+          <span class="mom-panel-name" style="font-size:13px">PROGRESS WORM</span>
+          <div style="display:flex;gap:10px;font-size:10px;font-family:var(--fm);font-weight:600">
+            <span style="color:var(--lime)">— NZ</span>
+            <span style="color:var(--cyan)">— SA</span>
+          </div>
+        </div>
+        <canvas class="mom-cv" id="cv-prg" width="340" height="155"></canvas>
+      </div>
+
+      <!-- Legend -->
+      <div class="mom-legend">
+        <div class="ml-item"><div class="ml-line thick" style="background:#1a8c2e"></div>Burst</div>
+        <div class="ml-item"><svg width="18" height="6"><line x1="0" y1="3" x2="18" y2="3" stroke="#ff3b5c" stroke-width="2" stroke-dasharray="4,3"/></svg>Collapse</div>
+        <div class="ml-item"><div class="ml-line" style="background:#6b0000"></div>Dots</div>
+        <div class="ml-item"><div class="ml-dot" style="background:var(--red)"></div>Wicket</div>
+        <div class="ml-item"><span style="font-size:11px">⭐</span>Landmark</div>
+      </div>
+
+    </div><!-- end mom-sidebar -->
+  </div><!-- end match-body -->
+</div><!-- end tab-match -->
+
+<!-- ── NEWS ── -->
+<div class="tab-pg" id="tab-news">
+  <div class="news-grid" id="news-grid"></div>
+</div>
+
+</div><!-- end page -->
+
+<!-- FLOATING CHAT -->
+<button class="chat-fab" onclick="toggleChat()">
+  <svg viewBox="0 0 26 26" fill="none">
+    <rect x="5" y="8" width="16" height="12" rx="3" fill="#000" opacity=".9"/>
+    <rect x="9" y="11" width="3" height="3" rx="1" fill="#07070f"/>
+    <rect x="14" y="11" width="3" height="3" rx="1" fill="#07070f"/>
+    <rect x="10" y="16" width="6" height="1.5" rx=".75" fill="#07070f"/>
+    <rect x="11.5" y="5" width="3" height="3.5" rx="1" fill="#000" opacity=".9"/>
+    <circle cx="13" cy="4.5" r="1.5" fill="#000" opacity=".9"/>
+    <rect x="2" y="11" width="2.5" height="5" rx="1.25" fill="#000" opacity=".8"/>
+    <rect x="21.5" y="11" width="2.5" height="5" rx="1.25" fill="#000" opacity=".8"/>
+  </svg>
+</button>
+<div class="chat-panel" id="chat-panel">
+  <div class="cp-hdr">
+    <div class="cp-icon">
+      <svg viewBox="0 0 26 26" fill="none">
+        <rect x="5" y="8" width="16" height="12" rx="3" fill="#c6f135"/>
+        <rect x="9" y="11" width="3" height="3" rx="1" fill="#07070f"/>
+        <rect x="14" y="11" width="3" height="3" rx="1" fill="#07070f"/>
+        <rect x="10" y="16" width="6" height="1.5" rx=".75" fill="#07070f"/>
+        <rect x="11.5" y="5" width="3" height="3.5" rx="1" fill="#c6f135"/>
+        <circle cx="13" cy="4.5" r="1.5" fill="#c6f135"/>
+        <rect x="2" y="11" width="2.5" height="5" rx="1.25" fill="#c6f135" opacity=".7"/>
+        <rect x="21.5" y="11" width="2.5" height="5" rx="1.25" fill="#c6f135" opacity=".7"/>
+      </svg>
+    </div>
+    <div><div class="cp-title">AI ANALYST</div><div class="cp-sub">Powered by Claude · NZ vs SA</div></div>
+    <button class="cp-close" onclick="toggleChat()">✕</button>
+  </div>
+  <div class="chat-msgs" id="chat-msgs">
+    <div class="cmsg">
+      <div class="cav ai">AI</div>
+      <div class="cbubble">Hey! Ask me about the match, players, strategy, or want a meme take on this chase.</div>
+    </div>
+  </div>
+  <div class="cp-suggs">
+    <button class="csugg" onclick="askQ('Who is leading the impact board?')">Impact leader?</button>
+    <button class="csugg" onclick="askQ('SA win probability?')">Win prob?</button>
+    <button class="csugg" onclick="askQ('Meme take on this chase')">Meme it 😂</button>
+  </div>
+  <div class="cp-inp">
+    <input class="cinput" id="chat-inp" placeholder="Ask anything…"/>
+    <button class="csend" onclick="sendChat()">↑</button>
+  </div>
+</div>
+<div id="tt"></div>
+
+<script>
+'use strict';
+const CFG = {
+  key: localStorage.getItem('cric_claude_key') || '',
+  model: 'claude-haiku-4-5-20251001',
+  api: 'https://api.anthropic.com/v1/messages'
+};
+function saveSettings() {
+  CFG.key = document.getElementById('api-key-inp').value;
+  localStorage.setItem('cric_claude_key', CFG.key);
+  const m = document.getElementById('smsg');
+  m.style.display = 'inline';
+  setTimeout(() => m.style.display = 'none', 2000);
+  document.getElementById('cric-settings').classList.remove('open');
+}
+function saveSettings(){CFG.key=document.getElementById('api-key-inp').value;localStorage.setItem('cric_claude_key',CFG.key);const m=document.getElementById('smsg');m.style.display='inline';setTimeout(()=>m.style.display='none',2000);document.getElementById('cric-settings').classList.remove('open');}
+
+// ── TOP NAV ──
+const _cricnavTabs = document.getElementById('cricnav-tabs');
+if(_cricnavTabs) _cricnavTabs.addEventListener('click',e=>{
+  const b=e.target.closest('.tnav');if(!b)return;
+  document.querySelectorAll('.tnav').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.tab-pg').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  document.getElementById('tab-'+b.dataset.tab).classList.add('on');
+});
+
+// ── SUB TABS ──
+const _stabs = document.getElementById('stabs');
+if(_stabs) _stabs.addEventListener('click',e=>{
+  const b=e.target.closest('.stab');if(!b)return;
+  document.querySelectorAll('.stab').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.sub-pg').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  document.getElementById('sub-'+b.dataset.sub).classList.add('on');
+});
+
+// ── DATA ──
+// ══════════════════════════════════════════════════════════════════════════════
+// SECTION 1 — TICKER + SCORES TAB
+// FUTURE: replace TICKER_DATA / MATCHES_DATA bodies with fetch() calls
+// ══════════════════════════════════════════════════════════════════════════════
+const TICKER=[
+  {live:true, txt:'NZ 186/6 (20) vs SA 140/4 (16) — SA need 47 off 24'},
+  {live:true, txt:'IND 342/8 (88.3) vs ENG 289 all out — Day 3'},
+  {live:false,txt:'AUS vs PAK ODI — tomorrow 9:30 AM IST'},
+  {live:false,txt:'WI 178/5 def SL 165/9 by 13 runs'},
+  {live:true, txt:'Conway Impact Score: 94 — match high'},
+  {live:true, txt:'Nortje 149.7 kmh — fastest ball of series'},
+];
+// FUTURE: async function loadTicker(){ return fetch('/api/ticker').then(r=>r.json()); }
+
+const MATCHES=[
+  {st:'live',    fmt:'T20I',t1:'New Zealand',t2:'South Africa',s1:'186/6 (20)', s2:'140/4 (16)',  note:'SA need 47 off 24 balls'},
+  {st:'live',    fmt:'TEST', t1:'India',      t2:'England',     s1:'342/8 (88.3)',s2:'289 all out',note:'India lead by 53 runs · Day 3'},
+  {st:'upcoming',fmt:'ODI',  t1:'Australia',  t2:'Pakistan',    s1:'',           s2:'',            note:'Tomorrow · 9:30 AM IST · MCG'},
+  {st:'upcoming',fmt:'T20I', t1:'Bangladesh', t2:'Sri Lanka',   s1:'',           s2:'',            note:'In 2 days · 3:00 PM IST'},
+  {st:'result',  fmt:'T20I', t1:'West Indies',t2:'Sri Lanka',   s1:'178/5 (20)',s2:'165/9 (20)',  note:'WI won by 13 runs'},
+  {st:'result',  fmt:'ODI',  t1:'Afghanistan',t2:'Zimbabwe',    s1:'251 (49.2)',s2:'214/8 (50)',  note:'AFG won by 37 runs'},
+];
+// FUTURE: async function loadMatches(){ return fetch('/api/matches?limit=20').then(r=>r.json()); }
+// ══════════════════════════════════════════════════════════════════════════════
+// SECTION 2 — MATCH-SPECIFIC DATA (scorecard, impact, commentary, news)
+// Each block is an async loader. Right now it returns hardcoded data.
+// FUTURE: swap the return line to fetch('/api/matches/'+id+'/...').then(r=>r.json())
+// The builder functions (buildScorecard, buildImpact, renderComm, buildNews)
+// are data-agnostic — they never change, only the source does.
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── SCORECARD ─────────────────────────────────────────────────────────────────
+// FUTURE: async function loadScorecard(id){ return fetch(`/api/matches/${id}/scorecard`).then(r=>r.json()); }
+async function loadScorecard(id){
+  const stored = localStorage.getItem(`cricai_match_${id}_scorecard`);
+  if(stored) return JSON.parse(stored);
+  return {
+    1:{sum:{score:'186/6',ov:'20.0',extras:12,rr:'9.30',highest:'72*',pship:'94 (58)'},
+       bat:[{n:'D Conway',dis:'c De Kock b Nortje',r:72,b:48,f:7,s:3,sr:150.0,out:false},
+            {n:'M Guptill',dis:'b Rabada',r:14,b:12,f:2,s:0,sr:116.7,out:true},
+            {n:'K Williamson',dis:'c Klaasen b Maharaj',r:34,b:26,f:3,s:1,sr:130.8,out:true},
+            {n:'G Phillips',dis:'run out (Miller)',r:28,b:18,f:2,s:2,sr:155.6,out:true},
+            {n:'H Nicholls',dis:'c Bavuma b Nortje',r:19,b:15,f:1,s:1,sr:126.7,out:true},
+            {n:'D Mitchell',dis:'not out',r:11,b:8,f:1,s:0,sr:137.5,out:false},
+            {n:'M Santner',dis:'b Rabada',r:0,b:1,f:0,s:0,sr:0,out:true},
+            {n:'T Southee',dis:'dnb',r:'-',b:'-',f:'-',s:'-',sr:'-',out:false,dnb:true}],
+       bowl:[{n:'K Rabada',o:'4.0',m:0,r:38,w:2,eco:9.50,dot:8,wd:2},
+             {n:'A Nortje',o:'4.0',m:0,r:35,w:2,eco:8.75,dot:10,wd:1},
+             {n:'K Maharaj',o:'4.0',m:0,r:28,w:1,eco:7.00,dot:12,wd:0},
+             {n:'L Ngidi',o:'4.0',m:0,r:42,w:0,eco:10.50,dot:6,wd:3},
+             {n:'M Jansen',o:'4.0',m:0,r:31,w:1,eco:7.75,dot:9,wd:1}]},
+    2:{sum:{score:'140/4',ov:'16.0',extras:8,rr:'8.75',highest:'58*',pship:'48 (28)'},
+       bat:[{n:'T Bavuma',dis:'c Conway b Southee',r:24,b:19,f:3,s:0,sr:126.3,out:true},
+            {n:'R Rossouw',dis:'b Southee',r:18,b:14,f:2,s:1,sr:128.6,out:true},
+            {n:'Q de Kock',dis:'not out',r:58,b:38,f:6,s:2,sr:152.6,out:false},
+            {n:'H Klaasen',dis:'batting',r:31,b:22,f:2,s:2,sr:140.9,out:false},
+            {n:'D Miller',dis:'c Mitchell b Santner',r:5,b:6,f:0,s:0,sr:83.3,out:true},
+            {n:'M Jansen',dis:'lbw b Ferguson',r:4,b:4,f:0,s:0,sr:100.0,out:true}],
+       bowl:[{n:'T Southee',o:'4.0',m:0,r:28,w:2,eco:7.00,dot:11,wd:1},
+             {n:'L Ferguson',o:'3.0',m:0,r:24,w:1,eco:8.00,dot:8,wd:0},
+             {n:'M Santner',o:'4.0',m:0,r:32,w:1,eco:8.00,dot:9,wd:0},
+             {n:'A Milne',o:'3.0',m:0,r:33,w:0,eco:11.00,dot:5,wd:2},
+             {n:'D Mitchell',o:'2.0',m:0,r:23,w:0,eco:11.50,dot:3,wd:1}]}
+  };
+}
+
+// ── IMPACT LEADERBOARD ─────────────────────────────────────────────────────────
+// FUTURE: async function loadImpact(id){ return fetch(`/api/matches/${id}/impact`).then(r=>r.json()); }
+async function loadImpact(id){
+  const stored = localStorage.getItem(`cricai_match_${id}_impact`);
+  if(stored) return JSON.parse(stored);
+  return [
+    {team:'New Zealand',code:'NZ',flag:'🇳🇿',score:'186/6 (20 ov)',players:[
+      {name:'Devon Conway',role:'BAT',imp:94,bat:91,bowl:0,fld:62,desc:'Built the NZ innings from scratch — 72 off 48 at 150 SR. Took the attack apart in death overs with 3 sixes. Also held a sharp catch at deep midwicket to dismiss Miller.'},
+      {name:'Tim Southee',role:'BOWL',imp:82,bat:0,bowl:88,fld:48,desc:'Dismantled SA top order in the powerplay, removing Bavuma and Rossouw in consecutive overs. 11 dot balls, economy 7.00 set up NZ\'s entire defensive plan.'},
+      {name:'Kane Williamson',role:'BAT',imp:72,bat:74,bowl:0,fld:30,desc:'Steadied the innings after Guptill\'s early exit — 34 off 26 with great intent. His stand with Conway worth 55 off 38 was the foundation NZ needed.'},
+    ]},
+    {team:'South Africa',code:'SA',flag:'🇿🇦',score:'140/4* (16 ov) — Chasing 187',players:[
+      {name:'Quinton de Kock',role:'WK-BAT',imp:88,bat:90,bowl:0,fld:55,desc:'SA\'s chase depends on him. 58* off 38 at 150+ SR, anchoring with Klaasen. Two sixes, six fours. Dropped on 18 — that let-off could decide the game.'},
+      {name:'Anrich Nortje',role:'BOWL',imp:79,bat:0,bowl:82,fld:38,desc:'Clocked 149.7 kmh — fastest of the series. Removed Conway and Nicholls in a devastating spell. Short-ball threat kept even Williamson on the back foot.'},
+      {name:'Heinrich Klaasen',role:'BAT',imp:68,bat:70,bowl:0,fld:20,desc:'Playing the ideal support role — 31* off 22, taking calculated risks. His pull off Milne for six in over 11 shifted momentum back to SA after the Miller collapse.'},
+    ]}
+  ];
+}
+
+// ── COMMENTARY ─────────────────────────────────────────────────────────────────
+// FUTURE: async function loadCommentary(id,page=1){ return fetch(`/api/matches/${id}/commentary?page=${page}`).then(r=>r.json()); }
+// Meme + fan flavours are pre-generated by Claude at ingest time and stored in DB alongside normal text.
+async function loadCommentary(id){
+  const stored = localStorage.getItem(`cricai_match_${id}_commentary`);
+  if(stored) return JSON.parse(stored);
+  return [
+    {ov:'16.3',res:'six',  btr:'De Kock',bwl:'Milne',   runs:6, n:'De Kock launches Milne over midwicket — clean, muscular. 6! SA need 41 off 21.',h:'Milne dropped short and paid. De Kock read it perfectly. Hold the line boys!',a:'QUINNY! Pure instinct over the ropes. SA are IN this!!',m:'Milne: "bouncer, he won\'t expect it" · De Kock: *first time?* · Ball lands in Row Z'},
+    {ov:'16.1',res:'four', btr:'De Kock',bwl:'Milne',   runs:4, n:'Driven hard through cover — excellent timing from De Kock. FOUR.',h:'Too full, too straight. De Kock was waiting on that length.',a:'COVER DRIVE OF THE TOURNAMENT. Milne is having a nightmare.',m:'That cover drive arrived at the boundary before the fielder had a plan.'},
+    {ov:'15.4',res:'wicket',btr:'Jansen',bwl:'Ferguson',runs:0, n:'Ferguson strikes — Jansen across the line. LBW! Big moment for NZ.',h:'YES! Ferguson with the breakthrough! NZ right back in it!',a:'No no no… Poor shot Jansen. Still got De Kock and Klaasen. Keep calm.',m:'Jansen sweeping a 145 kph full ball: what could go wrong. Answer: everything.'},
+    {ov:'14.2',res:'single',btr:'Klaasen',bwl:'Santner',runs:1, n:'Tucked to fine leg for one. De Kock and Klaasen rotating nicely.',h:'Good field placing from NZ but we\'ll take that single.',a:'Smart cricket — rotate and let De Kock play the big shots.',m:'Taking a single in a T20 chase: "not scared, conserving energy strategically."'},
+    {ov:'13.1',res:'wicket',btr:'Miller', bwl:'Santner',runs:0, n:'Miller caught at deep midwicket! Santner nails it. Finisher gone for 5.',h:'SANTNER! Miller gone for peanuts. NZ to WIN!',a:'Miller… bro… we needed you. Six balls, zero impact. My heart has left.',m:'David Miller, destroyer of attacks, out for 5 to a spinner. Man retires from existence.'},
+    {ov:'11.3',res:'six',  btr:'Klaasen',bwl:'Milne',   runs:6, n:'Klaasen pulls Milne off the back foot! Six! SA accelerating.',h:'Need dots not sixes Milne. That pull was perfectly timed.',a:'Klaasen ALIVE! That pull had murder on its mind.',m:'Milne bowling short to Klaasen: a study in optimism over evidence.'},
+  ];
+}
+
+// ── NEWS ───────────────────────────────────────────────────────────────────────
+// FUTURE: async function loadNews(id){ return fetch(`/api/matches/${id}/news`).then(r=>r.json()); }
+async function loadNews(id){
+  const stored = localStorage.getItem(`cricai_match_${id}_news`);
+  if(stored) return JSON.parse(stored);
+  return [
+    {tag:'LIVE',    hl:'De Kock blazing — SA need 47 off 24 as NZ defence creaks',            time:'2 min ago', ic:'🏏'},
+    {tag:'ANALYSIS',hl:'Impact breakdown: Conway single-handedly built NZ\'s platform',         time:'18 min ago',ic:'📊'},
+    {tag:'VIRAL',   hl:'Twitter explodes as Miller falls for 5 — "finisher has left the chat"', time:'25 min ago',ic:'🔥'},
+    {tag:'STATS',   hl:'Nortje clocks 149.7 kmh — fastest delivery of the SA vs NZ series',    time:'1 hr ago',  ic:'⚡'},
+    {tag:'PREVIEW', hl:'3rd T20I preview: Series decider — both camps eye momentum shift',      time:'2 hr ago',  ic:'🌐'},
+    {tag:'CHAT',    hl:'"We had a plan for every batter" — Maharaj after 7-over spell',         time:'3 hr ago',  ic:'🎙'},
+  ];
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SECTION 3 — MOMENTUM DATA
+// FUTURE: async function loadMomentum(id){ return fetch(`/api/matches/${id}/momentum`).then(r=>r.json()); }
+// Returns { inn1: NZ_INN, inn2: SA_INN, wf1, wf2 } — same shape as below.
+// Canvas engine (drawMomentum, drawProgress) is completely untouched.
+// ══════════════════════════════════════════════════════════════════════════════
+async function loadMomentum(id){
+  const stored = localStorage.getItem(`cricai_match_${id}_momentum`);
+  if(stored) return JSON.parse(stored);
+  return {
+    inn1:{flag:'🇳🇿',colHi:T.nzHi,col:T.nz,wp0:50,
+      cumScores:[0,8,14,21,31,43,52,61,69,79,87,96,102,113,120,134,143,151,162,175,186],
+      data:[{o:1,r:8,wp:52,type:'normal',wkt:[],msd:null,lmk:null},{o:2,r:6,wp:49,type:'collapse',wkt:['Guptill b Rabada 14'],msd:null,lmk:null},{o:3,r:7,wp:50,type:'normal',wkt:[],msd:null,lmk:null},{o:4,r:10,wp:55,type:'boundary_burst',wkt:[],msd:null,lmk:null},{o:5,r:12,wp:58,type:'boundary_burst',wkt:[],msd:null,lmk:null},{o:6,r:9,wp:57,type:'normal',wkt:[],msd:null,lmk:null},{o:7,r:9,wp:59,type:'normal',wkt:[],msd:null,lmk:null},{o:8,r:8,wp:60,type:'normal',wkt:[],msd:null,lmk:null},{o:9,r:10,wp:64,type:'boundary_burst',wkt:[],msd:null,lmk:null},{o:10,r:8,wp:60,type:'collapse',wkt:['Williamson c Klaasen b Maharaj 34'],msd:null,lmk:null},{o:11,r:9,wp:61,type:'dot_cluster',wkt:[],msd:'Conway DROPPED on 44 — Nortje grasses it',lmk:null},{o:12,r:6,wp:59,type:'dot_cluster',wkt:[],msd:null,lmk:'Conway 50'},{o:13,r:11,wp:65,type:'boundary_burst',wkt:[],msd:null,lmk:null},{o:14,r:7,wp:61,type:'collapse',wkt:['Phillips run out 28'],msd:null,lmk:null},{o:15,r:14,wp:71,type:'boundary_burst',wkt:[],msd:null,lmk:null},{o:16,r:9,wp:66,type:'collapse',wkt:['Nicholls c Bavuma b Nortje 19'],msd:null,lmk:null},{o:17,r:8,wp:64,type:'dot_cluster',wkt:[],msd:'Conway near run-out on 65',lmk:null},{o:18,r:11,wp:68,type:'boundary_burst',wkt:[],msd:null,lmk:null},{o:19,r:13,wp:63,type:'boundary_burst',wkt:['Conway c de Kock b Rabada 72'],msd:null,lmk:'Conway 72'},{o:20,r:11,wp:62,type:'normal',wkt:['Santner b Rabada 0'],msd:null,lmk:null}]
+    },
+    inn2:{flag:'🇿🇦',colHi:T.saHi,col:T.sa,wp0:38,target:187,
+      cumScores:[0,6,14,23,32,38,43,51,61,68,80,90,98,107,116,122,140],
+      data:[{o:1,r:6,wp:37,type:'normal',wkt:[],msd:null,lmk:null},{o:2,r:8,wp:39,type:'normal',wkt:[],msd:null,lmk:null},{o:3,r:9,wp:41,type:'boundary_burst',wkt:[],msd:null,lmk:null},{o:4,r:9,wp:35,type:'collapse',wkt:['Bavuma c Conway b Southee 24'],msd:null,lmk:null},{o:5,r:6,wp:28,type:'collapse',wkt:['Rossouw b Southee 18'],msd:null,lmk:null},{o:6,r:5,wp:27,type:'dot_cluster',wkt:[],msd:null,lmk:null},{o:7,r:8,wp:29,type:'normal',wkt:[],msd:null,lmk:null},{o:8,r:10,wp:33,type:'boundary_burst',wkt:[],msd:null,lmk:null},{o:9,r:7,wp:30,type:'dot_cluster',wkt:[],msd:'de Kock DROPPED on 18 — Milne huge miss!',lmk:null},{o:10,r:12,wp:37,type:'boundary_burst',wkt:[],msd:null,lmk:null},{o:11,r:10,wp:41,type:'boundary_burst',wkt:[],msd:null,lmk:null},{o:12,r:8,wp:34,type:'collapse',wkt:['Miller c Mitchell b Santner 5'],msd:null,lmk:null},{o:13,r:9,wp:37,type:'normal',wkt:[],msd:null,lmk:'de Kock 50'},{o:14,r:9,wp:28,type:'collapse',wkt:['Jansen lbw b Ferguson 4'],msd:'Klaasen near run-out — survived!',lmk:null},{o:15,r:6,wp:21,type:'dot_cluster',wkt:[],msd:null,lmk:null},{o:16,r:18,wp:38,type:'boundary_burst',wkt:[],msd:null,lmk:null}]
+    },
+    wf1:[[2,14,'Guptill'],[10,87,'Williamson'],[14,120,'Phillips'],[16,143,'Nicholls'],[19,175,'Conway'],[20,183,'Santner']],
+    wf2:[[4,32,'Bavuma'],[5,38,'Rossouw'],[12,98,'Miller'],[14,116,'Jansen']]
+  };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SECTION 4 — BUILDER FUNCTIONS (data-agnostic — never need to change)
+// These read from module-level variables set by initMatchData() below.
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Live module-level state (set once by initMatchData, updated by live poll)
+let INN={}, IMPACT_TEAMS=[], COMM=[], NEWS_DATA=[];
+let NZ_INN={}, SA_INN={}, NZ_WF=[], SA_WF=[], PAR=[], SA_RRR=[], SA_CRR=[];
+
+// Loads all match-specific data for a given match ID and populates module state
+async function initMatchData(id){
+  const [scorecard, impact, commentary, news, momentum] = await Promise.all([
+    loadScorecard(id),
+    loadImpact(id),
+    loadCommentary(id),
+    loadNews(id),
+    loadMomentum(id),
+  ]);
+  // Scorecard
+  INN = scorecard;
+  // Impact
+  IMPACT_TEAMS = impact;
+  // Commentary (init reaction counts)
+  COMM = commentary;
+  initReactions();
+  // News
+  NEWS_DATA = news;
+  // Momentum
+  NZ_INN = momentum.inn1;
+  SA_INN = momentum.inn2;
+  NZ_WF  = momentum.wf1;
+  SA_WF  = momentum.wf2;
+  const totalOvers = NZ_INN.cumScores.length - 1;
+  const target = SA_INN.target || (NZ_INN.cumScores[totalOvers] + 1);
+  PAR    = Array.from({length:totalOvers+1},(_,i)=>Math.round(target*i/totalOvers));
+  SA_RRR = computeRRR(SA_INN.cumScores, target, totalOvers);
+  SA_CRR = SA_INN.cumScores.map((sc,ov)=>ov===0?0:+(sc/ov).toFixed(2));
+}
+
+// ── BUILDERS ──
+function buildTicker(){const a=[...TICKER,...TICKER];document.getElementById('tkr').innerHTML=a.map(t=>`<div class="ticker-item"><span class="tdot" style="${!t.live?'background:rgba(0,0,0,.2);animation:none':''}"></span>${t.txt}</div>`).join('');}
+function buildMatches(){document.getElementById('match-grid').innerHTML=MATCHES.map(m=>`<div class="mc ${m.st}"><div class="mc-hdr"><span class="mc-fmt">${m.fmt}</span><span class="mc-st ${m.st}">${m.st==='live'?'● LIVE':m.st==='upcoming'?'UPCOMING':'RESULT'}</span></div><div class="mc-teams"><div class="mc-team"><span class="mc-tn">${m.t1}</span><span class="mc-sc ${!m.s1?'dim':''}">${m.s1||'—'}</span></div><div class="mc-team"><span class="mc-tn">${m.t2}</span><span class="mc-sc ${!m.s2?'dim':''}">${m.s2||'—'}</span></div></div><div class="mc-note">${m.note}</div></div>`).join('');}
+
+let _activeInn=1;
+function buildScorecard(n){
+  _activeInn=n;
+  document.querySelectorAll('.inn-btn').forEach(b=>b.classList.toggle('on',+b.dataset.inn===n));
+  const d=INN[n],s=d.sum;
+  document.getElementById('inn-stats').innerHTML=`<div><div class="ins-val">${s.score}</div><div class="ins-lbl">Score</div></div><div><div class="ins-val">${s.ov}</div><div class="ins-lbl">Overs</div></div><div><div class="ins-val">${s.extras}</div><div class="ins-lbl">Extras</div></div><div><div class="ins-val">${s.rr}</div><div class="ins-lbl">Run Rate</div></div><div><div class="ins-val">${s.highest}</div><div class="ins-lbl">Highest</div></div><div><div class="ins-val">${s.pship}</div><div class="ins-lbl">Best P\'ship</div></div>`;
+  document.getElementById('bat-tbl').innerHTML=`<table class="ct"><thead><tr><th>Batter</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th></tr></thead><tbody>${d.bat.map(p=>p.dnb?`<tr><td><span class="pn">${p.n}</span></td><td colspan="5" class="dnb">Did not bat</td></tr>`:`<tr><td><span class="pn">${p.n}${!p.out?' <span style="color:var(--lime);font-size:9px">★</span>':''}</span><span class="pd">${p.dis}</span></td><td class="${p.r>=50?'hl-r':''}">${p.r}</td><td>${p.b}</td><td>${p.f}</td><td style="color:${p.s>0?'var(--cyan)':''}">${p.s}</td><td style="color:${typeof p.sr==='number'&&p.sr>=150?'var(--lime)':typeof p.sr==='number'&&p.sr<100?'var(--red)':'var(--t2)'}">${typeof p.sr==='number'?p.sr.toFixed(1):p.sr}</td></tr>`).join('')}</tbody></table>`;
+  document.getElementById('bowl-tbl').innerHTML=`<table class="ct"><thead><tr><th>Bowler</th><th>O</th><th>M</th><th>R</th><th>W</th><th>Eco</th><th>Dots</th><th>Wd</th></tr></thead><tbody>${d.bowl.map(p=>`<tr><td><span class="pn">${p.n}</span></td><td>${p.o}</td><td>${p.m}</td><td>${p.r}</td><td class="${p.w>=2?'hl-w':''}">${p.w}</td><td class="${p.eco<=8?'hl-e':p.eco>=11?'hl-w':''}">${p.eco.toFixed(2)}</td><td>${p.dot}</td><td>${p.wd}</td></tr>`).join('')}</tbody></table>`;
+}
+const _innSw = document.getElementById('inn-sw');
+if(_innSw) _innSw.addEventListener('click',e=>{const b=e.target.closest('.inn-btn');if(b)buildScorecard(+b.dataset.inn);});
+
+let flavor='n';
+let rcounts=[], reacted=[];
+function initReactions(){ rcounts=COMM.map(()=>({'🔥':20+~~(Math.random()*80),'😂':10+~~(Math.random()*60),'💔':~~(Math.random()*30),'🫡':5+~~(Math.random()*40),'🤯':8+~~(Math.random()*55)})); reacted=COMM.map(()=>({})); }
+window.setFlavor=function(f,btn){flavor=f;document.querySelectorAll('.flv').forEach(b=>b.className='flv');btn.classList.add('on-'+f);renderComm();};
+function renderComm(){
+  const isMeme=flavor==='m';
+  document.getElementById('comm-list').innerHTML=COMM.map((c,idx)=>{
+    const text=c[{n:'n',h:'h',a:'a',m:'m'}[flavor]];
+    return `<div class="ccard ${c.res}"><div class="chdr"><span class="over-bdg">${c.ov}</span><span class="bres ${c.res}">${c.res==='six'?'6':c.res==='four'?'4':c.res==='wicket'?'WKT':c.res==='dot'?'DOT':c.runs}</span><span class="cplayers">${c.btr} vs ${c.bwl}</span></div><div class="ctxt">${text}</div>${isMeme?`<div class="react-row">${Object.entries(rcounts[idx]).map(([e,cnt])=>`<button class="rbtn ${reacted[idx][e]?'on':''}" onclick="doReact(${idx},'${e}',this)"><span>${e}</span><span class="rcnt">${cnt}</span></button>`).join('')}</div>`:''}</div>`;
+  }).join('');
+}
+window.doReact=function(idx,e,btn){if(reacted[idx][e]){rcounts[idx][e]--;reacted[idx][e]=false;btn.classList.remove('on');}else{rcounts[idx][e]++;reacted[idx][e]=true;btn.classList.add('on');}btn.querySelector('.rcnt').textContent=rcounts[idx][e];};
+
+function buildImpact(){
+  const RL=['#1','#2','#3'];
+  document.getElementById('imp-page').innerHTML=IMPACT_TEAMS.map(team=>`<div class="imp-team-block"><div class="imp-team-hdr"><span class="imp-flag">${team.flag}</span><span class="imp-tname">${team.team}</span><span class="imp-sc">${team.score}</span></div><div class="imp-cards">${team.players.map((p,i)=>`<div class="ipc r${i+1}"><div class="ipc-head"><div class="ipc-rank">${RL[i]}</div><div class="ipc-id"><div class="ipc-name">${p.name}</div><div class="ipc-meta"><span class="ipc-flag">${team.flag}</span><span class="ipc-team">${team.code}</span><span class="ipc-role">${p.role}</span></div></div></div><div class="ipc-score-blk"><div class="ipc-score">${p.imp}</div><div class="ipc-slbl">Impact<br>Score</div></div><div class="ipc-bar"><div class="ipc-bar-f" style="width:${p.imp}%"></div></div><div class="ipc-dims"><div class="ipc-dim"><div class="ipc-dv bat">${p.bat>0?p.bat:'<span class=na>—</span>'}</div><div class="ipc-dl">Bat</div></div><div class="ipc-dim"><div class="ipc-dv bowl">${p.bowl>0?p.bowl:'<span class=na>—</span>'}</div><div class="ipc-dl">Bowl</div></div><div class="ipc-dim"><div class="ipc-dv fld">${p.fld>0?p.fld:'<span class=na>—</span>'}</div><div class="ipc-dl">Field</div></div></div><div class="ipc-desc">${p.desc}</div></div>`).join('')}</div></div>`).join('');
+}
+
+function buildNews(){
+  const m=CURRENT_MATCH;
+  const matchLabel=m&&m.t1?`${m.c1||m.t1} vs ${m.c2||m.t2}`:'Cricket';
+  document.getElementById('news-grid').innerHTML=NEWS_DATA.map(n=>`<div class="ncard"><div class="nimg"><div class="nbg">CRIC</div><span class="nic">${n.ic}</span><span class="ntag">${n.tag}</span></div><div class="nbody"><div class="nhl">${n.hl}</div><div class="nmeta"><span>${n.time}</span><span>${matchLabel}</span></div><div class="nreact"><button class="nrbtn">🔥 ${30+~~(Math.random()*200)}</button><button class="nrbtn">💬 ${5+~~(Math.random()*80)}</button><button class="nrbtn">↗ Share</button></div></div></div>`).join('');
+}
+
+// ══════════════════════════════════════════
+// MOMENTUM — full v7 canvas engine
+// ══════════════════════════════════════════
+const T={
+  nz:'#8fb82a',nzHi:'#c6f135',
+  sa:'#009e8d',saHi:'#00e5c8',
+  burst:'#1a8c2e',dots:'#6b0000',
+  red:'#ff3b5c',miss:'#ff3b5c',lmk:'#ffd700',
+  par:'rgba(255,184,48,.5)',rrr:'rgba(255,59,92,.7)',
+  proj:'rgba(198,241,53,.5)',
+  ref:'rgba(255,255,255,.13)',grid:'rgba(255,255,255,.05)',axis:'rgba(255,255,255,.13)',
+  div:'rgba(255,255,255,.07)',
+};
+// NZ_INN, SA_INN, NZ_WF, SA_WF, PAR, SA_RRR, SA_CRR are now set by initMatchData()
+// computeRRR is a pure utility — stays here
+function computeRRR(c,t,total){return c.map((sc,ov)=>ov<total?+((t-sc)/(total-ov)).toFixed(2):0);}
+
+let yMode='wp',animProg=0,rafId=null;
+const DPR=Math.min(window.devicePixelRatio||1,2);
+const HIT={nz:[],sa:[]};
+
+function setupCanvas(cv){
+  // getBoundingClientRect is authoritative post-layout. offsetWidth can be 0
+  // before first paint; BCR is populated once flex/grid layout resolves,
+  // which is guaranteed after a double-rAF (see startMomentum below).
+  let W = cv.getBoundingClientRect().width || cv.offsetWidth;
+  if(!W){
+    let p=cv.parentElement;
+    while(p&&!W){ W=p.getBoundingClientRect().width||p.offsetWidth; p=p.parentElement; }
+  }
+  // Hard fallback: use the HTML width attr stamped on the canvas element
+  if(!W||W<10) W = parseInt(cv.getAttribute('width'))||340;
+  const H = cv.getBoundingClientRect().height||cv.offsetHeight
+          ||parseInt(cv.getAttribute('height'))||190;
+  cv.width  = Math.ceil(W)*DPR;
+  cv.height = Math.ceil(H)*DPR;
+  const ctx = cv.getContext('2d');
+  ctx.scale(DPR,DPR);
+  return {ctx,W,H};
+}
+
+function drawWicketMk(ctx,cx,cy){ctx.save();ctx.beginPath();ctx.arc(cx,cy,11,0,Math.PI*2);ctx.fillStyle='rgba(255,59,92,.15)';ctx.fill();ctx.beginPath();ctx.arc(cx,cy,6.5,0,Math.PI*2);ctx.fillStyle=T.red;ctx.fill();ctx.strokeStyle='#07070f';ctx.lineWidth=1.5;ctx.stroke();ctx.font='bold 7px "DM Sans",sans-serif';ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('W',cx,cy);ctx.restore();}
+function drawMissedMk(ctx,cx,cy){ctx.save();ctx.beginPath();ctx.arc(cx,cy,8,0,Math.PI*2);ctx.fillStyle='rgba(255,59,92,.18)';ctx.fill();ctx.strokeStyle=T.red;ctx.lineWidth=1.5;ctx.stroke();ctx.font='bold 10px "DM Sans",sans-serif';ctx.fillStyle=T.red;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('!',cx,cy+.5);ctx.restore();}
+function drawStarMk(ctx,cx,cy,label){const n=5,r1=9,r2=4;ctx.save();ctx.beginPath();for(let i=0;i<n*2;i++){const a=(i*Math.PI/n)-Math.PI/2,r=i%2===0?r1:r2;i===0?ctx.moveTo(cx+r*Math.cos(a),cy+r*Math.sin(a)):ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));}ctx.closePath();ctx.fillStyle=T.lmk;ctx.fill();ctx.strokeStyle='rgba(0,0,0,.35)';ctx.lineWidth=1;ctx.stroke();if(label){ctx.font='500 9px "DM Sans",sans-serif';ctx.fillStyle=T.lmk;ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText(label,cx,cy-r1-3);}ctx.restore();}
+function drawWormDiamond(ctx,cx,cy){const s=4.5;ctx.save();ctx.beginPath();ctx.moveTo(cx,cy-s);ctx.lineTo(cx+s,cy);ctx.lineTo(cx,cy+s);ctx.lineTo(cx-s,cy);ctx.closePath();ctx.fillStyle=T.red;ctx.fill();ctx.strokeStyle='#07070f';ctx.lineWidth=1;ctx.stroke();ctx.restore();}
+
+function drawPhaseBg(ctx,lyt){
+  const{PD,CH,xOf}=lyt;
+  ctx.fillStyle='rgba(198,241,53,.06)';ctx.fillRect(xOf(0),PD.t,xOf(6)-xOf(0),CH);
+  ctx.fillStyle='rgba(255,59,92,.05)';ctx.fillRect(xOf(15),PD.t,xOf(20)-xOf(15),CH);
+  ctx.fillStyle='rgba(198,241,53,.7)';ctx.fillRect(xOf(0),PD.t,3,CH);
+  ctx.fillStyle='rgba(255,255,255,.2)';ctx.fillRect(xOf(6),PD.t,2,CH);
+  ctx.fillStyle='rgba(255,59,92,.7)';ctx.fillRect(xOf(15),PD.t,3,CH);
+  ctx.save();ctx.strokeStyle='rgba(255,255,255,.12)';ctx.lineWidth=1;ctx.setLineDash([]);
+  [6,15].forEach(o=>{ctx.beginPath();ctx.moveTo(xOf(o),PD.t);ctx.lineTo(xOf(o),PD.t+CH);ctx.stroke();});
+  ctx.restore();
+  function pill(text,cx,bg,tc){ctx.font='700 9px "DM Sans",sans-serif';const tw=ctx.measureText(text).width,ph=15,pw=tw+12,pr=3,px=cx-pw/2,py=PD.t+CH-ph-2;ctx.save();ctx.beginPath();ctx.roundRect(px,py,pw,ph,pr);ctx.fillStyle=bg;ctx.fill();ctx.fillStyle=tc;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,cx,py+ph/2);ctx.restore();}
+  pill('PP',xOf(3),'rgba(198,241,53,.28)','#d8ff55');
+  pill('MIDDLE',xOf(10.5),'rgba(200,200,255,.13)','#e0e0ff');
+  pill('DEATH',xOf(17.5),'rgba(255,59,92,.28)','#ff8090');
+}
+
+function makeLayout(W,H){const PD={t:36,r:44,b:38,l:44};const CW=W-PD.l-PD.r,CH=H-PD.t-PD.b;return{PD,CW,CH,xOf:o=>PD.l+(o/20)*CW,yOf:(v,yMin,ySpan)=>PD.t+CH*(1-(Math.max(yMin,v)-yMin)/ySpan)};}
+
+function drawMomentum(cv,inn,prog,hitKey){
+  const{ctx,W,H}=setupCanvas(cv);
+  const lyt=makeLayout(W,H);
+  const{PD,CW,CH,xOf,yOf}=lyt;
+  const isWP=yMode==='wp',isNZ=inn===NZ_INN,isSA=inn===SA_INN;
+  const yMin=isWP?10:0,yMax=isWP?100:18,ySpan=yMax-yMin;
+  const yTicks=isWP?[20,40,50,60,80]:[0,3,6,9,12,15,18];
+  drawPhaseBg(ctx,lyt);
+  ctx.strokeStyle=T.grid;ctx.lineWidth=1;
+  yTicks.forEach(v=>{ctx.beginPath();ctx.moveTo(PD.l,yOf(v,yMin,ySpan));ctx.lineTo(PD.l+CW,yOf(v,yMin,ySpan));ctx.stroke();});
+  ctx.strokeStyle=T.axis;ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(PD.l,PD.t);ctx.lineTo(PD.l,PD.t+CH);ctx.lineTo(PD.l+CW,PD.t+CH);ctx.stroke();
+  ctx.font='400 9px "JetBrains Mono",monospace';ctx.fillStyle='#b8b8d4';ctx.textAlign='right';ctx.textBaseline='middle';
+  yTicks.forEach(v=>ctx.fillText(isWP?v+'%':v,PD.l-5,yOf(v,yMin,ySpan)));
+  ctx.fillStyle='#b8b8d4';ctx.textAlign='center';ctx.textBaseline='top';
+  for(let o=4;o<=20;o+=4)ctx.fillText(o,xOf(o),PD.t+CH+4);
+  const refV=isWP?50:(isNZ?9.3:SA_RRR[0]);
+  ctx.save();ctx.strokeStyle=T.ref;ctx.lineWidth=1;ctx.setLineDash([6,4]);
+  ctx.beginPath();ctx.moveTo(PD.l,yOf(refV,yMin,ySpan));ctx.lineTo(PD.l+CW,yOf(refV,yMin,ySpan));ctx.stroke();ctx.restore();
+  const limit=Math.round(inn.data.length*Math.min(prog,1));
+  const pts=[{o:0,val:inn.wp0,type:'normal',wkt:[],msd:null,lmk:null},...inn.data.slice(0,limit).map(d=>({o:d.o,val:isWP?d.wp:d.r,type:d.type,wkt:d.wkt,msd:d.msd,lmk:d.lmk}))];
+  if(!isWP&&isSA&&prog>.15){
+    ctx.save();ctx.strokeStyle=T.rrr;ctx.lineWidth=1.5;ctx.setLineDash([4,3]);ctx.globalAlpha=.8;
+    ctx.beginPath();SA_RRR.forEach((v,i)=>{if(i===0)ctx.moveTo(xOf(0),yOf(v,yMin,ySpan));else if(i<=limit)ctx.lineTo(xOf(i),yOf(v,yMin,ySpan));});
+    ctx.stroke();ctx.restore();
+    ctx.font='600 8px "JetBrains Mono",monospace';ctx.fillStyle='#ff8090';ctx.textAlign='left';ctx.textBaseline='middle';
+    const li=Math.min(limit,SA_RRR.length-1);ctx.fillText('RRR',xOf(li)+4,yOf(SA_RRR[li],yMin,ySpan));
+  }
+  if(pts.length>1){ctx.save();ctx.beginPath();ctx.moveTo(xOf(0),yOf(inn.wp0,yMin,ySpan));pts.forEach((p,i)=>{if(i>0)ctx.lineTo(xOf(p.o),yOf(p.val,yMin,ySpan));});const lp=pts[pts.length-1];ctx.lineTo(xOf(lp.o),PD.t+CH);ctx.lineTo(xOf(0),PD.t+CH);ctx.closePath();const ag=ctx.createLinearGradient(0,PD.t,0,PD.t+CH);ag.addColorStop(0,inn.colHi+'1e');ag.addColorStop(1,inn.colHi+'00');ctx.fillStyle=ag;ctx.fill();ctx.restore();}
+  for(let i=1;i<pts.length;i++){const p0=pts[i-1],p1=pts[i];ctx.save();ctx.beginPath();ctx.moveTo(xOf(p0.o),yOf(p0.val,yMin,ySpan));ctx.lineTo(xOf(p1.o),yOf(p1.val,yMin,ySpan));ctx.lineCap='round';switch(p1.type){case'boundary_burst':ctx.strokeStyle=T.burst;ctx.lineWidth=4;ctx.setLineDash([]);break;case'dot_cluster':ctx.strokeStyle=T.dots;ctx.lineWidth=2.5;ctx.setLineDash([]);break;case'collapse':ctx.strokeStyle=T.red;ctx.lineWidth=2.5;ctx.setLineDash([5,3.5]);break;default:ctx.strokeStyle=inn.col;ctx.lineWidth=2.5;ctx.setLineDash([]);break;}ctx.stroke();ctx.restore();}
+  pts.forEach((p,i)=>{if(i===0)return;ctx.save();ctx.beginPath();ctx.arc(xOf(p.o),yOf(p.val,yMin,ySpan),2,0,Math.PI*2);ctx.fillStyle=inn.col;ctx.fill();ctx.restore();});
+  if(prog<1)return;
+  HIT[hitKey]=[];
+  pts.forEach((p,i)=>{
+    if(i===0)return;const bx=xOf(p.o),by=yOf(p.val,yMin,ySpan);let yo=0;
+    if(p.wkt.length){drawWicketMk(ctx,bx,by);HIT[hitKey].push({cx:bx,cy:by,r:12,type:'wkt',data:p});yo+=18;}
+    if(p.lmk){const sy=by-yo-30;ctx.save();ctx.strokeStyle='rgba(255,215,0,.2)';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.beginPath();ctx.moveTo(bx,by-yo-4);ctx.lineTo(bx,sy+10);ctx.stroke();ctx.restore();drawStarMk(ctx,bx,sy,p.lmk);HIT[hitKey].push({cx:bx,cy:sy,r:12,type:'lmk',data:p});yo+=34;}
+    if(p.msd){const mx2=bx+13,my2=by-yo-9;drawMissedMk(ctx,mx2,my2);HIT[hitKey].push({cx:mx2,cy:my2,r:10,type:'msd',data:p});}
+  });
+  if(isSA){const lp=pts[pts.length-1];const lx=xOf(lp.o),ly=yOf(lp.val,yMin,ySpan);ctx.save();ctx.beginPath();ctx.arc(lx,ly,5.5,0,Math.PI*2);ctx.fillStyle=inn.colHi;ctx.fill();ctx.strokeStyle='rgba(255,255,255,.28)';ctx.lineWidth=1.5;ctx.stroke();ctx.restore();}
+  const fp=pts[pts.length-1];ctx.font='13px serif';ctx.textBaseline='middle';ctx.textAlign='left';ctx.fillText(inn.flag,xOf(fp.o)+7,yOf(fp.val,yMin,ySpan));
+}
+
+function drawProgress(cv,prog){
+  const{ctx,W,H}=setupCanvas(cv);
+  const PD={t:28,r:44,b:34,l:44};const CW=W-PD.l-PD.r,CH=H-PD.t-PD.b;
+  const yMax=215,yMin=0,ySpan=yMax-yMin;
+  const xOf=o=>PD.l+(o/20)*CW,yOf=v=>PD.t+CH*(1-(v-yMin)/ySpan);
+  ctx.fillStyle='rgba(198,241,53,.05)';ctx.fillRect(xOf(0),PD.t,xOf(6)-xOf(0),CH);
+  ctx.fillStyle='rgba(255,59,92,.04)';ctx.fillRect(xOf(15),PD.t,xOf(20)-xOf(15),CH);
+  ctx.fillStyle='rgba(198,241,53,.65)';ctx.fillRect(xOf(0),PD.t,3,CH);
+  ctx.fillStyle='rgba(255,255,255,.18)';ctx.fillRect(xOf(6),PD.t,2,CH);
+  ctx.fillStyle='rgba(255,59,92,.65)';ctx.fillRect(xOf(15),PD.t,3,CH);
+  ctx.strokeStyle='rgba(255,255,255,.04)';ctx.lineWidth=1;
+  for(let v=50;v<=200;v+=50){ctx.beginPath();ctx.moveTo(PD.l,yOf(v));ctx.lineTo(PD.l+CW,yOf(v));ctx.stroke();}
+  ctx.strokeStyle=T.axis;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(PD.l,PD.t);ctx.lineTo(PD.l,PD.t+CH);ctx.lineTo(PD.l+CW,PD.t+CH);ctx.stroke();
+  ctx.font='400 9px "JetBrains Mono",monospace';ctx.fillStyle='#b8b8d4';ctx.textAlign='right';ctx.textBaseline='middle';
+  for(let v=0;v<=200;v+=50)ctx.fillText(v,PD.l-5,yOf(v));
+  ctx.fillStyle='#b8b8d4';ctx.textAlign='center';ctx.textBaseline='top';
+  for(let o=4;o<=20;o+=4)ctx.fillText(o,xOf(o),PD.t+CH+4);
+  ctx.save();ctx.strokeStyle=T.par;ctx.lineWidth=1.2;ctx.setLineDash([7,5]);ctx.beginPath();PAR.forEach((v,i)=>i===0?ctx.moveTo(xOf(i),yOf(v)):ctx.lineTo(xOf(i),yOf(v)));ctx.stroke();ctx.restore();
+  function worm(cumArr,wfArr,col,colHi,lim){
+    const maxP=cumArr.length-1,pts=Math.min(maxP,Math.round(maxP*Math.min(lim,1)));
+    ctx.save();ctx.beginPath();ctx.moveTo(xOf(0),yOf(0));for(let i=1;i<=pts;i++)ctx.lineTo(xOf(i),yOf(cumArr[i]));ctx.lineTo(xOf(pts),PD.t+CH);ctx.lineTo(xOf(0),PD.t+CH);ctx.closePath();const ag=ctx.createLinearGradient(0,PD.t,0,PD.t+CH);ag.addColorStop(0,colHi+'12');ag.addColorStop(1,colHi+'00');ctx.fillStyle=ag;ctx.fill();ctx.restore();
+    if(pts>0){ctx.save();ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.setLineDash([]);ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(xOf(0),yOf(0));for(let i=1;i<=pts;i++){if(i===1){ctx.lineTo(xOf(1),yOf(cumArr[1]));continue;}const x0=xOf(i-1),y0=yOf(cumArr[i-1]),x1=xOf(i),y1=yOf(cumArr[i]);ctx.bezierCurveTo((x0+x1)/2,y0,(x0+x1)/2,y1,x1,y1);}ctx.stroke();ctx.restore();}
+    if(lim<1)return;
+    wfArr.forEach(([ov,sc])=>{if(ov<=pts)drawWormDiamond(ctx,xOf(ov),yOf(sc));});
+    ctx.save();ctx.beginPath();ctx.arc(xOf(pts),yOf(cumArr[pts]),3.5,0,Math.PI*2);ctx.fillStyle=colHi;ctx.fill();ctx.restore();
+  }
+  worm(NZ_INN.cumScores,NZ_WF,T.nz,T.nzHi,prog);
+  worm(SA_INN.cumScores,SA_WF,T.sa,T.saHi,prog);
+  if(prog>=1){
+    ctx.font='12px serif';ctx.textBaseline='middle';ctx.textAlign='left';
+    ctx.fillText('🇳🇿',xOf(20)+4,yOf(NZ_INN.cumScores[20]));
+    ctx.fillText('🇿🇦',xOf(16)+4,yOf(SA_INN.cumScores[16]));
+    ctx.font='500 9px "DM Sans",sans-serif';ctx.fillStyle=T.nzHi;ctx.textBaseline='middle';
+    ctx.fillText('186/6',xOf(20)+18,yOf(NZ_INN.cumScores[20]));
+    ctx.fillStyle=T.saHi;ctx.fillText('140/4*',xOf(16)+18,yOf(SA_INN.cumScores[16]));
+  }
+}
+
+const cvNZ=document.getElementById('cv-nz'),cvSA=document.getElementById('cv-sa'),cvPrg=document.getElementById('cv-prg');
+function renderAll(p){drawMomentum(cvNZ,NZ_INN,p,'nz');drawMomentum(cvSA,SA_INN,p,'sa');drawProgress(cvPrg,p);}
+function runAnim(){if(rafId)cancelAnimationFrame(rafId);const start=performance.now(),dur=1600;function step(now){animProg=Math.min((now-start)/dur,1);renderAll(animProg);if(animProg<1)rafId=requestAnimationFrame(step);else{animProg=1;renderAll(1);}}rafId=requestAnimationFrame(step);}
+window.replayAll=()=>{animProg=0;runAnim();};
+window.setYMode=m=>{yMode=m;document.getElementById('btn-wp').className='ym-btn'+(m==='wp'?' on':'');document.getElementById('btn-rr').className='ym-btn'+(m==='rr'?' on':'');renderAll(animProg);};
+
+// Tooltip
+const ttEl=document.getElementById('tt');
+function posTT(e){const tx=e.clientX+18,ty=e.clientY-14;ttEl.style.left=Math.min(tx,window.innerWidth-260)+'px';ttEl.style.top=Math.max(8,Math.min(ty,window.innerHeight-220))+'px';}
+function buildOvTT(d,inn){const tl={boundary_burst:'⚡ Burst',dot_cluster:'● Dots',collapse:'💥 Collapse',normal:''};const tc={boundary_burst:T.burst,dot_cluster:T.dots,collapse:T.red,normal:''};let h=`<div class="tt-ov" style="color:${inn.colHi}">Over ${d.o}</div>`;h+=`<div class="tt-val" style="color:${inn.colHi}">${yMode==='wp'?d.wp+'% win prob':d.r+' runs'}</div>`;if(tl[d.type])h+=`<div class="tt-type" style="color:${tc[d.type]}">${tl[d.type]}</div>`;if(d.wkt.length)d.wkt.forEach(w=>{h+=`<div class="tt-ev"><div class="tt-mk" style="background:${T.red}"></div><span>${w}</span></div>`;});if(d.lmk)h+=`<div class="tt-ev"><span style="font-size:11px">⭐</span><span style="color:${T.lmk};font-weight:500">${d.lmk}</span></div>`;if(d.msd)h+=`<div class="tt-ev"><div class="tt-mk" style="background:${T.miss}"></div><span style="color:${T.miss}">${d.msd}</span></div>`;return h;}
+function showMomTT(e,inn,cvEl,hitKey){
+  const rect=cvEl.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top;
+  const zones=HIT[hitKey];for(let z of zones){if(Math.hypot(mx-z.cx,my-z.cy)<=z.r+4){let h;if(z.type==='msd'){h=`<div class="tt-ov" style="color:${T.miss}">MISSED CHANCE</div><div class="tt-ev"><div class="tt-mk" style="background:${T.miss}"></div><span style="color:${T.miss}">${z.data.msd}</span></div>`;}else if(z.type==='lmk'){h=`<div class="tt-ov" style="color:${T.lmk}">⭐ ${z.data.lmk}</div>`;}else{h=buildOvTT(z.data,inn);}ttEl.innerHTML=h;ttEl.classList.add('v');posTT(e);return;}}
+  const PD={l:44,r:44};const CW=rect.width-PD.l-PD.r,rawO=(mx-PD.l)/CW*20;
+  if(rawO<.3||rawO>inn.data.length+.7){ttEl.classList.remove('v');return;}
+  const ov=Math.max(1,Math.min(inn.data.length,Math.round(rawO)));const d=inn.data[ov-1];if(!d){ttEl.classList.remove('v');return;}
+  let h=buildOvTT(d,inn);
+  if(inn===SA_INN){h+=`<div class="tt-div"></div><div class="tt-ev"><div class="tt-mk" style="background:${T.rrr}"></div><span>RRR: <strong style="color:${T.rrr}">${SA_RRR[ov].toFixed(2)}</strong></span></div><div class="tt-ev"><div class="tt-mk" style="background:rgba(198,241,53,.6)"></div><span>CRR: <strong style="color:#c6f135">${SA_CRR[ov].toFixed(2)}</strong></span></div>`;const need=187-SA_INN.cumScores[ov];if(need>0)h+=`<div class="tt-ev" style="color:#ffb830">Need: <strong>${need} off ${(20-ov)*6} balls</strong></div>`;}
+  ttEl.innerHTML=h;ttEl.classList.add('v');posTT(e);
+}
+cvNZ.addEventListener('mousemove',e=>showMomTT(e,NZ_INN,cvNZ,'nz'));
+cvSA.addEventListener('mousemove',e=>showMomTT(e,SA_INN,cvSA,'sa'));
+cvPrg.addEventListener('mousemove',e=>{
+  const rect=cvPrg.getBoundingClientRect(),mx=e.clientX-rect.left;
+  const PD={l:44,r:44};const CW=rect.width-PD.l-PD.r,rawO=(mx-PD.l)/CW*20;
+  if(rawO<0||rawO>20.5){ttEl.classList.remove('v');return;}
+  const ov=Math.max(0,Math.min(20,Math.round(rawO)));
+  const nzV=NZ_INN.cumScores[ov]??null,saV=SA_INN.cumScores[ov]??null,parV=PAR[ov]??null;
+  let h=`<div class="tt-ov">Over ${ov}</div>`;
+  if(nzV!==null)h+=`<div class="tt-ev"><div class="tt-mk" style="background:${T.nzHi}"></div><span>🇳🇿 NZ: <strong style="color:${T.nzHi}">${nzV}</strong></span></div>`;
+  if(saV!==null)h+=`<div class="tt-ev"><div class="tt-mk" style="background:${T.saHi}"></div><span>🇿🇦 SA: <strong style="color:${T.saHi}">${saV}</strong></span></div>`;
+  if(parV!==null){const diff=saV!=null?saV-parV:null;h+=`<div class="tt-ev"><div class="tt-mk" style="background:rgba(255,184,48,.6)"></div><span>Par: ${parV}${diff!=null?' <span style="color:'+(diff>=0?T.saHi:T.red)+'">('+(diff>=0?'+':'')+diff+')</span>':''}</span></div>`;}
+  const nzW=NZ_WF.find(w=>w[0]===ov),saW=SA_WF.find(w=>w[0]===ov);
+  if(nzW)h+=`<div class="tt-div"></div><div class="tt-ev"><div class="tt-mk" style="background:${T.red}"></div><span style="color:${T.red}">🇳🇿 ${nzW[2]} out</span></div>`;
+  if(saW)h+=`<div class="tt-ev"><div class="tt-mk" style="background:${T.red}"></div><span style="color:${T.red}">🇿🇦 ${saW[2]} out</span></div>`;
+  ttEl.innerHTML=h;ttEl.classList.add('v');posTT(e);
+});
+[cvNZ,cvSA,cvPrg].forEach(c=>c.addEventListener('mouseleave',()=>ttEl.classList.remove('v')));
+// ── RESIZABLE SPLIT PANE ──
+(function(){
+  const handle  = document.getElementById('drag-handle');
+  const sidebar = document.getElementById('mom-sidebar');
+  const body    = document.querySelector('.match-body');
+  if(!handle || !sidebar || !body) return;
+
+  // Restore saved width
+  const saved = localStorage.getItem('cric_sidebar_w');
+  if(saved) sidebar.style.width = saved + 'px';
+
+  let dragging = false, startX = 0, startW = 0;
+
+  handle.addEventListener('mousedown', e => {
+    dragging = true;
+    startX = e.clientX;
+    startW = sidebar.offsetWidth;
+    handle.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if(!dragging) return;
+    // Moving handle LEFT = sidebar gets wider (drag from right edge of left col)
+    const dx = startX - e.clientX;
+    const newW = Math.min(640, Math.max(240, startW + dx));
+    sidebar.style.width = newW + 'px';
+    // Re-render canvases at new width
+    if(animProg >= 1) renderAll(1);
+  });
+
+  document.addEventListener('mouseup', () => {
+    if(!dragging) return;
+    dragging = false;
+    handle.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    localStorage.setItem('cric_sidebar_w', sidebar.offsetWidth);
+    // Final redraw at settled width
+    setTimeout(() => renderAll(1), 50);
+  });
+
+  // Touch support
+  handle.addEventListener('touchstart', e => {
+    dragging = true;
+    startX = e.touches[0].clientX;
+    startW = sidebar.offsetWidth;
+    e.preventDefault();
+  }, {passive:false});
+
+  document.addEventListener('touchmove', e => {
+    if(!dragging) return;
+    const dx = startX - e.touches[0].clientX;
+    const newW = Math.min(640, Math.max(240, startW + dx));
+    sidebar.style.width = newW + 'px';
+    if(animProg >= 1) renderAll(1);
+  }, {passive:true});
+
+  document.addEventListener('touchend', () => {
+    dragging = false;
+    localStorage.setItem('cric_sidebar_w', sidebar.offsetWidth);
+    setTimeout(() => renderAll(1), 50);
+  });
+})();
+
+// Redraw canvases whenever sidebar dimensions change (drag or window resize)
+new ResizeObserver(()=>{ if(animProg>=1) setTimeout(()=>renderAll(1),10); }).observe(document.getElementById('mom-sidebar'));
+// ── AI CHATBOT ─────────────────────────────────────────────────────────────────
+// buildChatContext() generates the system prompt from live CURRENT_MATCH data.
+// This means the chatbot is ALWAYS contextualised to whichever match is open —
+// no more hardcoded "NZ 186/6 vs SA 140/4" for every match page.
+function buildChatContext(m){
+  if(!m||!m.id) return 'You are cricAI — a sharp, concise cricket analyst.';
+  const scoreInfo = `${m.t1} ${m.s1} (${m.ov1} ov) vs ${m.t2} ${m.s2} (${m.ov2} ov)`;
+  const situation = m.need || (m.status==='result'?'Match complete':'Upcoming');
+  const topImpact = IMPACT_TEAMS.length
+    ? IMPACT_TEAMS.flatMap(t=>t.players).sort((a,b)=>b.imp-a.imp).slice(0,3).map(p=>`${p.name} (Impact ${p.imp})`).join(', ')
+    : '';
+  return `You are cricAI — sharp cricket analyst. Be concise (max 3 sentences). ` +
+    `Match: ${scoreInfo}. Status: ${situation}. ` +
+    `Format: ${m.title||''}. ` +
+    (topImpact ? `Top impact players: ${topImpact}. ` : '') +
+    `Win probability: ${m.winProb||'N/A'}. `;
+}
+
+let chatOpen=false;const chatHist=[];
+window.toggleChat=function(){chatOpen=!chatOpen;document.getElementById('chat-panel').classList.toggle('open',chatOpen);if(chatOpen)setTimeout(()=>document.getElementById('chat-inp').focus(),280);};
+async function sendChat(){
+  const inp=document.getElementById('chat-inp');
+  const msg=inp.value.trim();
+  if(!msg)return;
+  inp.value='';
+  appendMsg(msg,'user');
+  chatHist.push({role:'user',content:msg});
+  const ty=appendTyping();
+  // Demo mode fallback — responds with match-aware answers even without API key
+  if(!CFG.key){
+    setTimeout(()=>{
+      ty.remove();
+      const lc=msg.toLowerCase();
+      const m=CURRENT_MATCH;
+      const topPlayer=IMPACT_TEAMS.length?IMPACT_TEAMS.flatMap(t=>t.players).sort((a,b)=>b.imp-a.imp)[0]:null;
+      const r=lc.includes('impact')&&topPlayer
+        ?`${topPlayer.name} leads the Impact Leaderboard at ${topPlayer.imp}. ${topPlayer.desc.split('.')[0]}.`
+        :lc.includes('win')
+        ?`${m.winProb||'Win probability data not available'}. ${m.need||''}`
+        :lc.includes('score')||lc.includes('need')
+        ?`${m.t1} ${m.s1} (${m.ov1} ov) — ${m.t2} ${m.s2} (${m.ov2} ov). ${m.need||''}`
+        :`${m.need||m.title||'Match data loaded'}. Add your API key in Settings for full AI analysis.`;
+      appendMsg(r,'ai');
+      chatHist.push({role:'assistant',content:r});
+    },800);
+    return;
+  }
+  try{
+    const res=await fetch(CFG.api,{method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':CFG.key,'anthropic-version':'2023-06-01'},
+      body:JSON.stringify({model:CFG.model,max_tokens:280,
+        system: buildChatContext(CURRENT_MATCH),
+        messages:chatHist
+      })
+    });
+    const d=await res.json();
+    ty.remove();
+    const r=d.content?.[0]?.text||'No response.';
+    appendMsg(r,'ai');
+    chatHist.push({role:'assistant',content:r});
+  }catch{ty.remove();appendMsg('Connection error. Add your API key via ⚙.','ai');}
+}
+function appendMsg(t,who){const msgs=document.getElementById('chat-msgs');const d=document.createElement('div');d.className='cmsg '+who;d.innerHTML=who==='ai'?`<div class="cav ai">AI</div><div class="cbubble">${t}</div>`:`<div class="cav">👤</div><div class="cbubble">${t}</div>`;msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;return d;}
+function appendTyping(){const msgs=document.getElementById('chat-msgs');const d=document.createElement('div');d.className='cmsg';d.innerHTML='<div class="cav ai">AI</div><div class="cbubble"><div style="display:flex;gap:4px;padding:3px 0"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div></div>';msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;return d;}
+window.askQ=q=>{document.getElementById('chat-inp').value=q;sendChat();};
+const _chatInp = document.getElementById('chat-inp');
+if(_chatInp) _chatInp.addEventListener('keydown',e=>{if(e.key==='Enter')sendChat();});
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SCALABLE MATCH ROUTING — supports 100,000+ matches
+// ──────────────────────────────────────────────────────────────────────────────
+// CURRENT:  MATCH_REGISTRY object (dev/demo, single HTML file for all matches)
+// NEXT:     Replace loadMatch() body with: fetch(`/api/matches/${id}`)
+//           The template HTML never changes — only the data changes.
+//           Each match URL is just: match.html?id=<cricbuzz_match_id>
+//
+// SCALE PATH:
+//   1. Static shell (this file) cached by service worker / CDN edge
+//   2. /api/matches/:id   → FastAPI → PostgreSQL (indexed on match_id)
+//   3. Live updates       → SSE endpoint /api/matches/:id/live  (poll every 15s)
+//   4. Momentum data      → pre-computed on ingest, stored as JSONB in DB
+//   5. index.html         → paginated match list (50/page), no full-table scan
+// ══════════════════════════════════════════════════════════════════════════════
+const MATCH_REGISTRY = {
+  // ── LIVE ──────────────────────────────────────────────────────────────────
+  '122698': {
+    id:'122698', title:'NZ vs SA · 2nd T20I · SuperSport Park, Centurion',
+    t1:'New Zealand', f1:'🇳🇿', c1:'NZ',
+    t2:'South Africa', f2:'🇿🇦', c2:'SA',
+    s1:'186/6', ov1:'20.0', s1note:'COMPLETED',
+    s2:'140/4', ov2:'16.0', s2note:'BATTING',
+    status:'live', need:'SA need 47 off 24',
+    crr:'8.75', rrr:'11.75', lastFive:'54 runs', pship:'48 (28)',
+    batting:'De Kock · Klaasen', winProb:'NZ 62%', winProbColor:'#dc2626',
+  },
+  '122699': {
+    id:'122699', title:'IND vs ENG · 2nd Test · Lord\u2019s, London',
+    t1:'India', f1:'🇮🇳', c1:'IND',
+    t2:'England', f2:'🏴\u200d\u200d\u200d', c2:'ENG',
+    s1:'342/8', ov1:'88.3', s1note:'DAY 3',
+    s2:'289', ov2:'90.0', s2note:'ALL OUT',
+    status:'live', need:'India lead by 53 runs',
+    crr:'3.87', rrr:'—', lastFive:'12 runs', pship:'32 (44)',
+    batting:'Rohit · Kohli', winProb:'IND 68%', winProbColor:'#dc2626',
+  },
+  // ── UPCOMING ──────────────────────────────────────────────────────────────
+  '122700': {
+    id:'122700', title:'AUS vs PAK · 1st ODI · MCG, Melbourne',
+    t1:'Australia', f1:'🇦🇺', c1:'AUS',
+    t2:'Pakistan',  f2:'🇵🇰', c2:'PAK',
+    s1:'—', ov1:'', s1note:'YET TO BAT',
+    s2:'—', ov2:'', s2note:'YET TO BAT',
+    status:'upcoming', need:'Tomorrow · 9:30 AM IST',
+    crr:'—', rrr:'—', lastFive:'—', pship:'—',
+    batting:'TBC', winProb:'TBC', winProbColor:'#737373',
+  },
+  '122701': {
+    id:'122701', title:'BAN vs SL · T20I · Mirpur',
+    t1:'Bangladesh', f1:'🇧🇩', c1:'BAN',
+    t2:'Sri Lanka',  f2:'🇱🇰', c2:'SL',
+    s1:'—', ov1:'', s1note:'YET TO BAT',
+    s2:'—', ov2:'', s2note:'YET TO BAT',
+    status:'upcoming', need:'19 Mar · 3:00 PM IST',
+    crr:'—', rrr:'—', lastFive:'—', pship:'—',
+    batting:'TBC', winProb:'TBC', winProbColor:'#737373',
+  },
+  // ── RESULTS ───────────────────────────────────────────────────────────────
+  '122702': {
+    id:'122702', title:'WI vs SL · T20I · Kensington Oval',
+    t1:'West Indies', f1:'🏝️', c1:'WI',
+    t2:'Sri Lanka',   f2:'🇱🇰', c2:'SL',
+    s1:'178/5', ov1:'20.0', s1note:'COMPLETED',
+    s2:'165/9', ov2:'20.0', s2note:'COMPLETED',
+    status:'result', need:'West Indies won by 13 runs',
+    crr:'8.90', rrr:'—', lastFive:'—', pship:'—',
+    batting:'Match ended', winProb:'WI won', winProbColor:'#15803d',
+  },
+  '122703': {
+    id:'122703', title:'AFG vs ZIM · ODI · Sharjah',
+    t1:'Afghanistan', f1:'🇦🇫', c1:'AFG',
+    t2:'Zimbabwe',    f2:'🇿🇼', c2:'ZIM',
+    s1:'251', ov1:'49.2', s1note:'ALL OUT',
+    s2:'214/8', ov2:'50.0', s2note:'COMPLETED',
+    status:'result', need:'Afghanistan won by 37 runs',
+    crr:'5.11', rrr:'—', lastFive:'—', pship:'—',
+    batting:'Match ended', winProb:'AFG won', winProbColor:'#15803d',
+  },
+};
+
+// loadMatch: today reads from MATCH_REGISTRY.
+// When FastAPI is ready, swap the body to: return fetch(`/api/matches/${id}`).then(r=>r.json())
+async function loadMatch(id) {
+  // Check if admin panel has saved custom info for this match
+  const stored = localStorage.getItem(`cricai_match_${id}_info`);
+  if(stored) return JSON.parse(stored);
+  // ── FUTURE: return fetch(`/api/matches/${id}`).then(r => r.json()); ──
+  const match = MATCH_REGISTRY[id];
+  if(!match){
+    showMatchNotFound(id);
+    return null;
+  }
+  return match;
+}
+
+// Friendly "match not found" screen — shown for unknown IDs
+function showMatchNotFound(id){
+  const matchSection = document.getElementById('tab-match');
+  if(!matchSection) return;
+  matchSection.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+                min-height:60vh;gap:16px;padding:40px 20px;text-align:center">
+      <div style="font-family:var(--fd);font-size:72px;color:var(--lt4);letter-spacing:4px">404</div>
+      <div style="font-family:var(--fd);font-size:24px;letter-spacing:2px;color:var(--lt-t1)">MATCH NOT FOUND</div>
+      <div style="font-size:13px;color:var(--lt-t3);max-width:420px;line-height:1.7">
+        Match ID <code style="font-family:var(--fm);background:var(--lt3);padding:2px 8px;border-radius:4px">${id}</code>
+        doesn't exist in the current registry.<br>
+        Once the FastAPI backend is connected, all Cricbuzz match IDs will resolve automatically.
+      </div>
+      <a href="index.html" style="margin-top:8px;background:var(--navy);color:#fff;border:none;
+         border-radius:8px;padding:10px 24px;font-size:13px;font-weight:700;cursor:pointer;
+         text-decoration:none;font-family:var(--fb)">← Back to matches</a>
+    </div>`;
+}
+
+const _matchId = new URLSearchParams(location.search).get('id') || '122698';
+// Bootstrap the page — load match meta + all feature data in parallel
+let CURRENT_MATCH = {};
+loadMatch(_matchId).then(async data => {
+  if(!data) return; // showMatchNotFound already called
+  CURRENT_MATCH = data;
+  populateHero();
+  // Load all feature data for this match (scorecard, impact, commentary, momentum, news)
+  await initMatchData(_matchId);
+  // Render all features now that data is ready
+  buildScorecard(1);
+  buildImpact();
+  renderComm();
+  buildNews();
+  // Start canvas after data is populated
+  startMomentum();
+  // If live: start polling — refreshes hero + all features every 15s
+  if(data.status === 'live') startLivePoll(_matchId);
+});
+
+// ── LIVE POLLING ─────────────────────────────────────────────────────────────
+// Refreshes ALL features on every tick — hero, scorecard, impact, commentary,
+// momentum graphs, news. When FastAPI is ready, swap loadMatch / initMatchData
+// bodies to fetch() calls. Everything else stays exactly the same.
+// FUTURE upgrade: replace setInterval with EventSource (SSE) for true real-time.
+function startLivePoll(id) {
+  setInterval(async () => {
+    try {
+      // 1. Refresh match meta (hero scores, need, win prob)
+      const fresh = await loadMatch(id);
+      if(!fresh) return;
+      CURRENT_MATCH = fresh;
+      populateHero();
+      // 2. Refresh all feature data in parallel
+      await initMatchData(id);
+      // 3. Re-render each feature
+      buildScorecard(_activeInn);   // stay on whichever innings tab user has open
+      buildImpact();
+      renderComm();                 // preserves current flavor (normal/hot/fan/meme)
+      buildNews();
+      // 4. Redraw momentum canvas with updated data
+      animProg = 0;
+      renderAll(1);                 // instant redraw (no animation on poll refresh)
+    } catch(e) { /* silent fail — stale data is acceptable */ }
+  }, 15000); // 15s — reduce to 5s once on SSE
+}
+
+// Populate score hero from match data
+function populateHero() {
+  const m = CURRENT_MATCH;
+  if(!m || !m.id) return; // data not yet loaded
+  const title = document.getElementById('sh-title');
+  if(title) title.textContent = m.title;
+  const mid = document.getElementById('sh-match-id');
+  if(mid) mid.textContent = 'ID ' + m.id;
+  // Team 1
+  const s1 = document.getElementById('sh-score1');
+  if(s1){
+    s1.querySelector('.sh-tname').textContent = m.t1.toUpperCase();
+    // Rebuild score: split "186/6" into runs and wickets
+    const [runs1, wkts1=''] = (m.s1||'').split('/');
+    s1.querySelector('.sh-score').innerHTML = runs1 + (wkts1 ? `<span class="sh-wkt">/${wkts1}</span>` : '');
+    s1.querySelector('.sh-ov').textContent = m.ov1 + ' OV · ' + m.s1note;
+  }
+  // Team 2
+  const s2 = document.getElementById('sh-score2');
+  if(s2){
+    s2.querySelector('.sh-tname').textContent = m.t2.toUpperCase();
+    const [runs2, wkts2=''] = (m.s2||'').split('/');
+    s2.querySelector('.sh-score').innerHTML = runs2 + (wkts2 ? `<span class="sh-wkt">/${wkts2}</span>` : '');
+    s2.querySelector('.sh-ov').textContent = m.ov2 + ' OV · ' + m.s2note;
+  }
+  const need = document.getElementById('sh-need');
+  if(need) need.textContent = m.need;
+  // Sync quick-stats bar
+  const statVals = document.querySelectorAll('.sh-val');
+  const statMap = [m.crr, m.rrr, m.lastFive, m.pship, m.batting, m.winProb];
+  statVals.forEach((el,i) => { if(statMap[i] !== undefined) el.textContent = statMap[i]; });
+  // Update page title
+  document.title = 'cricAI — ' + m.t1 + ' vs ' + m.t2;
+}
+
+// ── INIT ──
+// Hero + all feature data are loaded inside loadMatch().then() above.
+// Only ticker + match-list-tab are independent of the current match ID.
+buildTicker();
+buildMatches();
+
+// ── CANVAS INIT: double-rAF pattern ──────────────────────────────────────────
+// startMomentum() is called from inside loadMatch().then() after initMatchData()
+// populates NZ_INN / SA_INN. The double-rAF ensures BCR returns real px.
+function startMomentum(){
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      const W = cvNZ.getBoundingClientRect().width || cvNZ.offsetWidth;
+      if(!W||W<10){ startMomentum(); return; }
+      runAnim();
+    });
+  });
+}
+// Safety net only — primary call is inside loadMatch().then()
+window.addEventListener('load', ()=>{ if(animProg===0 && NZ_INN.cumScores) runAnim(); });
+</script>
+<!-- FOOTER -->
+<footer class="cricfooter">
+  <div class="cricfooter-inner">
+    <div class="cricfooter-cols">
+      <div>
+        <a href="index.html" style="font-family:var(--fd);font-size:20px;letter-spacing:3px;
+           text-decoration:none;display:block;margin-bottom:10px">
+          <span style="color:#fff">CRIC</span><span style="color:var(--navy-light)">AI</span>
+        </a>
+        <div style="font-size:11px;color:#555;line-height:1.9">
+          Live cricket intelligence platform.<br>
+          AI-powered match analysis,<br>
+          impact scoring &amp; predictions.
+        </div>
+      </div>
+      <div>
+        <div class="cricfooter-col-title">Cricket</div>
+        <a href="index.html" class="cricfooter-link">Live Scores</a>
+        <a href="match.html" class="cricfooter-link">Match Centre</a>
+        <a href="players.html" class="cricfooter-link">Players</a>
+        <span class="cricfooter-link">Series</span>
+        <span class="cricfooter-link">Teams</span>
+      </div>
+      <div>
+        <div class="cricfooter-col-title">Intelligence</div>
+        <span class="cricfooter-link">Impact Scores</span>
+        <span class="cricfooter-link">AI Match Reports</span>
+        <span class="cricfooter-link">Win Probability</span>
+        <span class="cricfooter-link">Momentum Graphs</span>
+      </div>
+      <div>
+        <div class="cricfooter-col-title">Company</div>
+        <span class="cricfooter-link">About Inyok.AI</span>
+        <span class="cricfooter-link">API Access</span>
+        <span class="cricfooter-link">Stats Glossary</span>
+        <span class="cricfooter-link">Privacy Policy</span>
+      </div>
+    </div>
+    <div class="cricfooter-bottom">
+      <div class="cricfooter-copy">&copy; 2026 Inyok.AI &middot; cricAI Platform &middot; Data via Cricbuzz API</div>
+      <div class="cricfooter-links">
+        <a href="index.html">Home</a>
+        <a href="match.html">Match</a>
+        <a href="players.html">Players</a>
+        <a href="#">Series</a>
+        <a href="#">Rankings</a>
+        <a href="#">Privacy</a>
+      </div>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

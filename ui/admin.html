@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>cricAI · Data Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#06060c; --bg2:#0d0d18; --bg3:#131320; --bg4:#1a1a2e;
+  --lime:#c6f135; --navy:#1d4ed8; --red:#ff3b5c; --amber:#ffb830; --cyan:#00e5c8;
+  --t1:#f0f0f8; --t2:#c8c8e4; --t3:#7070a0; --t4:#2e2e50;
+  --b1:rgba(255,255,255,.08); --b2:rgba(255,255,255,.15);
+  --fd:'Bebas Neue',sans-serif; --fb:'DM Sans',system-ui,sans-serif; --fm:'JetBrains Mono',monospace;
+  --r:10px; --rsm:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{height:100%}
+body{background:var(--bg);color:var(--t1);font-family:var(--fb);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:4px}
+input,textarea,select{background:var(--bg3);border:1px solid var(--b1);color:var(--t1);font-family:var(--fb);font-size:13px;border-radius:var(--rsm);outline:none;transition:border-color .15s}
+input:focus,textarea:focus,select:focus{border-color:rgba(198,241,53,.4)}
+textarea{resize:vertical;line-height:1.6}
+button{cursor:pointer;font-family:var(--fb);border:none;transition:all .15s}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--bg2);border-bottom:2px solid var(--lime);padding:0 24px;height:52px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100}
+.tb-logo{font-family:var(--fd);font-size:22px;letter-spacing:3px;flex-shrink:0}
+.tb-logo b{color:#fff}
+.tb-logo em{color:var(--lime);font-style:normal}
+.tb-badge{background:rgba(198,241,53,.12);border:1px solid rgba(198,241,53,.3);color:var(--lime);font-size:9px;font-weight:700;letter-spacing:1.5px;padding:2px 8px;border-radius:3px;text-transform:uppercase;flex-shrink:0}
+.tb-spacer{flex:1}
+.tb-key{display:flex;align-items:center;gap:8px}
+.tb-key label{font-size:10px;color:var(--t3);font-weight:700;letter-spacing:.8px;text-transform:uppercase;white-space:nowrap}
+.tb-key input{width:220px;padding:5px 10px;font-family:var(--fm);font-size:11px}
+.key-dot{width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0;transition:background .3s}
+.key-dot.ok{background:var(--lime)}
+.tb-launch{background:var(--lime);color:#000;font-weight:700;font-size:12px;padding:7px 18px;border-radius:var(--rsm);display:flex;align-items:center;gap:6px;flex-shrink:0}
+.tb-launch:hover{opacity:.85}
+
+/* ── LAYOUT ── */
+.shell{display:grid;grid-template-columns:260px 1fr 320px;height:calc(100vh - 52px);overflow:hidden}
+
+/* ── LEFT SIDEBAR ── */
+.sidebar{background:var(--bg2);border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow-y:auto}
+.sb-section{padding:14px 16px;border-bottom:1px solid var(--b1)}
+.sb-label{font-size:9px;color:var(--t3);font-weight:700;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:8px}
+.match-sel{width:100%;padding:7px 10px;border-radius:var(--rsm);cursor:pointer;font-size:12px}
+.match-sel option{background:var(--bg3)}
+
+.new-match-btn{width:100%;background:var(--bg4);border:1px dashed var(--b2);color:var(--t3);font-size:12px;padding:7px;border-radius:var(--rsm);margin-top:8px;transition:all .15s}
+.new-match-btn:hover{border-color:var(--lime);color:var(--lime)}
+
+/* Match info card */
+.match-card{background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:12px;margin-top:2px}
+.mc-teams{display:flex;flex-direction:column;gap:5px}
+.mc-team-row{display:flex;align-items:center;justify-content:space-between}
+.mc-tname{font-weight:600;font-size:13px}
+.mc-tscore{font-family:var(--fm);font-size:12px;color:var(--lime)}
+.mc-status{font-size:10px;color:var(--amber);margin-top:6px;padding-top:6px;border-top:1px solid var(--b1)}
+
+/* Storage status */
+.store-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:2px}
+.store-item{background:var(--bg3);border:1px solid var(--b1);border-radius:var(--rsm);padding:7px 9px;display:flex;align-items:center;justify-content:space-between}
+.store-name{font-size:10px;color:var(--t2);font-weight:600}
+.store-dot{width:7px;height:7px;border-radius:50%;background:var(--bg4);flex-shrink:0;transition:background .3s}
+.store-dot.saved{background:var(--lime)}
+.store-dot.partial{background:var(--amber)}
+
+/* Actions */
+.sb-actions{padding:14px 16px;display:flex;flex-direction:column;gap:7px;margin-top:auto}
+.act-btn{width:100%;padding:9px;border-radius:var(--rsm);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:7px}
+.act-btn.primary{background:var(--navy);color:#fff}
+.act-btn.primary:hover{background:#2563eb}
+.act-btn.danger{background:rgba(255,59,92,.1);border:1px solid rgba(255,59,92,.25);color:var(--red)}
+.act-btn.danger:hover{background:rgba(255,59,92,.2)}
+.act-btn.ghost{background:var(--bg4);color:var(--t2);border:1px solid var(--b1)}
+.act-btn.ghost:hover{border-color:var(--b2);color:var(--t1)}
+
+/* ── MAIN PANEL ── */
+.main{display:flex;flex-direction:column;overflow:hidden}
+
+/* Tabs */
+.tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--b1);padding:0 20px;flex-shrink:0}
+.tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--t3);font-size:12px;font-weight:600;padding:12px 16px;cursor:pointer;white-space:nowrap;transition:all .15s;letter-spacing:.3px;margin-bottom:-1px;display:flex;align-items:center;gap:6px}
+.tab:hover{color:var(--t2)}
+.tab.on{color:var(--lime);border-bottom-color:var(--lime)}
+.tab-dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.4}
+.tab.on .tab-dot{opacity:1}
+.tab .cnt{background:rgba(198,241,53,.15);color:var(--lime);font-size:8px;padding:1px 5px;border-radius:10px;font-family:var(--fm)}
+
+/* Tab pages */
+.tab-pages{flex:1;overflow-y:auto}
+.tab-page{display:none;padding:20px}
+.tab-page.on{display:block}
+
+/* Section headers */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.sec-title{font-family:var(--fd);font-size:15px;letter-spacing:2px;color:var(--t2)}
+.sec-sub{font-size:11px;color:var(--t3);margin-top:1px}
+
+/* Input groups */
+.input-group{margin-bottom:16px}
+.input-label{font-size:10px;color:var(--t3);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:5px;display:flex;align-items:center;gap:6px}
+.input-label .hint{font-weight:400;color:var(--t4);text-transform:none;letter-spacing:0}
+.input-row{display:grid;gap:10px}
+.input-row.cols-2{grid-template-columns:1fr 1fr}
+.input-row.cols-3{grid-template-columns:1fr 1fr 1fr}
+.input-row.cols-4{grid-template-columns:1fr 1fr 1fr 1fr}
+input.field,select.field{width:100%;padding:8px 10px}
+textarea.field{width:100%;padding:10px 12px;min-height:80px}
+textarea.big{min-height:160px;font-family:var(--fm);font-size:12px}
+textarea.xl{min-height:260px;font-family:var(--fm);font-size:12px}
+
+/* Commentary paste area */
+.paste-area{position:relative}
+.paste-hint{position:absolute;top:10px;right:10px;font-size:9px;color:var(--t4);font-family:var(--fm);pointer-events:none}
+
+/* Parse button */
+.parse-btn{background:linear-gradient(135deg,rgba(198,241,53,.15),rgba(198,241,53,.08));border:1px solid rgba(198,241,53,.35);color:var(--lime);font-size:12px;font-weight:700;padding:9px 20px;border-radius:var(--rsm);display:flex;align-items:center;gap:8px;transition:all .2s}
+.parse-btn:hover{background:linear-gradient(135deg,rgba(198,241,53,.25),rgba(198,241,53,.15));border-color:var(--lime)}
+.parse-btn.loading{opacity:.6;pointer-events:none}
+.parse-btn .spin{display:inline-block;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.save-btn{background:var(--navy);color:#fff;font-size:12px;font-weight:700;padding:9px 20px;border-radius:var(--rsm);display:flex;align-items:center;gap:7px}
+.save-btn:hover{background:#2563eb}
+.save-btn.saved{background:rgba(0,229,200,.15);border:1px solid rgba(0,229,200,.3);color:var(--cyan)}
+
+.btn-row{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;align-items:center}
+
+/* Result preview */
+.result-box{background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);margin-top:14px}
+.result-hdr{padding:10px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between}
+.result-hdr-label{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);display:flex;align-items:center;gap:6px}
+.result-count{background:rgba(198,241,53,.12);color:var(--lime);font-size:9px;padding:1px 7px;border-radius:10px;font-family:var(--fm)}
+.result-body{padding:12px 14px;max-height:260px;overflow-y:auto}
+pre.result-json{font-family:var(--fm);font-size:11px;color:var(--t2);line-height:1.6;white-space:pre-wrap;word-break:break-all}
+
+/* Commentary preview cards */
+.comm-preview{display:flex;flex-direction:column;gap:8px}
+.cp-card{background:var(--bg4);border:1px solid var(--b1);border-radius:var(--rsm);padding:10px 12px}
+.cp-card.six{border-left:3px solid var(--cyan)}
+.cp-card.four{border-left:3px solid var(--lime)}
+.cp-card.wicket{border-left:3px solid var(--red)}
+.cp-card.dot{border-left:3px solid var(--t4)}
+.cp-card.wide,.cp-card.noball{border-left:3px solid var(--amber)}
+.cp-meta{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.cp-ov{font-family:var(--fm);font-size:10px;background:var(--bg3);color:var(--t2);padding:1px 7px;border-radius:3px;font-weight:600}
+.cp-res{font-size:9px;font-weight:800;padding:1px 7px;border-radius:3px;text-transform:uppercase;letter-spacing:.5px}
+.cp-res.six{background:rgba(0,229,200,.15);color:var(--cyan)}
+.cp-res.four{background:rgba(198,241,53,.15);color:var(--lime)}
+.cp-res.wicket{background:rgba(255,59,92,.15);color:var(--red)}
+.cp-res.dot,.cp-res.single,.cp-res.two,.cp-res.three{background:rgba(255,255,255,.07);color:var(--t3)}
+.cp-res.wide,.cp-res.noball{background:rgba(255,184,48,.12);color:var(--amber)}
+.cp-players{font-size:10px;color:var(--t3);margin-left:auto}
+.cp-text{font-size:12px;line-height:1.6;color:var(--t2)}
+.cp-flavours{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.cp-flv{font-size:9px;padding:2px 7px;border-radius:3px;background:rgba(255,255,255,.05);color:var(--t3);font-weight:600;letter-spacing:.3px}
+
+/* Scorecard table inputs */
+.sc-table{width:100%;border-collapse:collapse;font-size:12px}
+.sc-table th{background:var(--bg3);color:var(--t3);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;padding:7px 10px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--b1)}
+.sc-table td{padding:4px 6px;border-bottom:1px solid rgba(255,255,255,.04)}
+.sc-table td input{width:100%;padding:4px 7px;font-size:12px;font-family:var(--fm)}
+.sc-table td input.wide{width:100%}
+.sc-table tr:hover td{background:rgba(255,255,255,.02)}
+.add-row-btn{background:var(--bg4);border:1px dashed var(--b1);color:var(--t3);font-size:11px;padding:6px 12px;border-radius:var(--rsm);display:flex;align-items:center;gap:5px;margin-top:8px;transition:all .15s}
+.add-row-btn:hover{border-color:var(--lime);color:var(--lime)}
+.del-btn{background:none;border:none;color:var(--t4);font-size:13px;padding:2px 4px;transition:color .15s}
+.del-btn:hover{color:var(--red)}
+
+/* Inn tabs */
+.inn-tabs{display:flex;gap:6px;margin-bottom:14px}
+.inn-tab{background:var(--bg4);border:1px solid var(--b1);color:var(--t3);font-size:11px;font-weight:700;padding:5px 14px;border-radius:20px;cursor:pointer;transition:all .15s}
+.inn-tab.on{background:var(--lime);color:#000;border-color:var(--lime)}
+
+/* Impact player cards */
+.impact-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.imp-card{background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:12px}
+.imp-card-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.imp-num{font-family:var(--fd);font-size:22px;color:var(--t3)}
+.imp-team-tag{font-size:9px;font-weight:800;letter-spacing:1px;text-transform:uppercase;padding:2px 7px;border-radius:3px;background:rgba(255,255,255,.08);color:var(--t2)}
+
+/* Momentum per-over table */
+.over-table{width:100%;border-collapse:collapse;font-size:11px}
+.over-table th{background:var(--bg3);color:var(--t3);font-size:9px;font-weight:700;text-transform:uppercase;padding:6px 8px;letter-spacing:.8px;text-align:center;border-bottom:1px solid var(--b1)}
+.over-table td{padding:3px 4px;border-bottom:1px solid rgba(255,255,255,.03);text-align:center}
+.over-table td input{width:100%;padding:3px 5px;font-size:11px;text-align:center;font-family:var(--fm)}
+.over-table td select{width:100%;padding:3px 4px;font-size:10px}
+.over-num{font-family:var(--fm);font-size:10px;color:var(--t4);padding:3px 8px;background:var(--bg3)}
+.add-over-btn{background:var(--bg4);border:1px dashed var(--b1);color:var(--t3);font-size:11px;padding:5px 12px;border-radius:var(--rsm);margin-top:8px;display:flex;align-items:center;gap:5px;transition:all .15s}
+.add-over-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+
+/* ── RIGHT PREVIEW ── */
+.preview-panel{background:var(--bg2);border-left:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden}
+.preview-hdr{padding:14px 16px;border-bottom:1px solid var(--b1);flex-shrink:0}
+.preview-title{font-family:var(--fd);font-size:14px;letter-spacing:2px;color:var(--t2);margin-bottom:3px}
+.preview-sub{font-size:10px;color:var(--t3)}
+.preview-body{flex:1;overflow-y:auto;padding:14px 16px}
+.pv-section{margin-bottom:16px}
+.pv-label{font-size:9px;color:var(--t3);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
+.pv-status{font-size:9px;padding:1px 7px;border-radius:3px;font-weight:700}
+.pv-status.stored{background:rgba(198,241,53,.12);color:var(--lime)}
+.pv-status.default{background:rgba(255,255,255,.07);color:var(--t3)}
+.pv-card{background:var(--bg3);border:1px solid var(--b1);border-radius:var(--rsm);padding:9px 11px;font-family:var(--fm);font-size:10px;color:var(--t2);line-height:1.7;word-break:break-all}
+.pv-empty{color:var(--t4);font-size:11px;font-style:italic}
+.pv-score{font-family:var(--fd);font-size:28px;letter-spacing:2px;color:var(--lime);line-height:1}
+.pv-team{font-size:11px;color:var(--t2);margin-top:2px}
+.pv-divider{border:none;border-top:1px solid var(--b1);margin:14px 0}
+.ball-dots{display:flex;gap:3px;flex-wrap:wrap;margin-top:4px}
+.ball-dot{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;font-family:var(--fm)}
+.ball-dot.six{background:rgba(0,229,200,.2);color:var(--cyan)}
+.ball-dot.four{background:rgba(198,241,53,.2);color:var(--lime)}
+.ball-dot.wicket{background:rgba(255,59,92,.2);color:var(--red)}
+.ball-dot.dot{background:rgba(255,255,255,.06);color:var(--t4)}
+.ball-dot.wide,.ball-dot.noball{background:rgba(255,184,48,.15);color:var(--amber)}
+.ball-dot.single,.ball-dot.two,.ball-dot.three{background:rgba(255,255,255,.1);color:var(--t2)}
+
+/* Status toast */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:12px 18px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:9px;z-index:999;transform:translateY(80px);opacity:0;transition:all .25s cubic-bezier(.4,0,.2,1);pointer-events:none}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.ok{border-color:rgba(198,241,53,.4);color:var(--lime)}
+.toast.err{border-color:rgba(255,59,92,.4);color:var(--red)}
+.toast.info{border-color:rgba(0,229,200,.3);color:var(--cyan)}
+
+/* New match modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--b2);border-radius:14px;padding:24px;width:min(480px,90vw);max-height:80vh;overflow-y:auto}
+.modal-title{font-family:var(--fd);font-size:18px;letter-spacing:2px;margin-bottom:18px;color:var(--t1)}
+.modal-footer{display:flex;gap:10px;margin-top:20px}
+.modal-footer button{flex:1;padding:10px;border-radius:var(--rsm);font-size:13px;font-weight:700}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="tb-logo"><b>CRIC</b><em>AI</em></div>
+  <div class="tb-badge">DATA PANEL</div>
+  <div class="tb-spacer"></div>
+  <div class="tb-key">
+    <div class="key-dot" id="key-dot"></div>
+    <label>CLAUDE API KEY</label>
+    <input type="password" id="api-key" placeholder="sk-ant-api03-…" oninput="saveKey(this.value)">
+  </div>
+  <button class="tb-launch" onclick="launchMatch()">⚡ Open Match View</button>
+</div>
+
+<!-- MAIN SHELL -->
+<div class="shell">
+
+  <!-- LEFT SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-section">
+      <div class="sb-label">Active Match</div>
+      <select class="match-sel" id="match-sel" onchange="switchMatch(this.value)">
+        <option value="122698">NZ vs SA · T20I #2</option>
+        <option value="122699">IND vs ENG · Test #2</option>
+        <option value="122700">AUS vs PAK · ODI #1</option>
+        <option value="122701">BAN vs SL · T20I</option>
+        <option value="122702">WI vs SL · T20I (Result)</option>
+        <option value="122703">AFG vs ZIM · ODI (Result)</option>
+        <option value="new">+ New match…</option>
+      </select>
+      <div class="match-card" id="match-card">
+        <div class="mc-teams">
+          <div class="mc-team-row">
+            <span class="mc-tname" id="pv-t1">New Zealand</span>
+            <span class="mc-tscore" id="pv-s1">186/6 (20)</span>
+          </div>
+          <div class="mc-team-row">
+            <span class="mc-tname" id="pv-t2">South Africa</span>
+            <span class="mc-tscore" id="pv-s2">140/4* (16)</span>
+          </div>
+        </div>
+        <div class="mc-status" id="pv-need">SA need 47 off 24</div>
+      </div>
+    </div>
+
+    <div class="sb-section">
+      <div class="sb-label">localStorage status</div>
+      <div class="store-grid" id="store-grid">
+        <div class="store-item"><span class="store-name">Info</span><div class="store-dot" id="dot-info"></div></div>
+        <div class="store-item"><span class="store-name">Scorecard</span><div class="store-dot" id="dot-scorecard"></div></div>
+        <div class="store-item"><span class="store-name">Commentary</span><div class="store-dot" id="dot-commentary"></div></div>
+        <div class="store-item"><span class="store-name">Impact</span><div class="store-dot" id="dot-impact"></div></div>
+        <div class="store-item"><span class="store-name">Momentum</span><div class="store-dot" id="dot-momentum"></div></div>
+        <div class="store-item"><span class="store-name">News</span><div class="store-dot" id="dot-news"></div></div>
+      </div>
+    </div>
+
+    <div class="sb-actions">
+      <button class="act-btn primary" onclick="saveAll()">💾 Save all to match</button>
+      <button class="act-btn ghost" onclick="exportJSON()">↗ Export JSON</button>
+      <button class="act-btn danger" onclick="clearMatch()">✕ Clear this match</button>
+    </div>
+  </div>
+
+  <!-- MAIN PANEL -->
+  <div class="main">
+    <div class="tabs">
+      <button class="tab on" data-tab="info" onclick="switchTab(this)"><div class="tab-dot"></div>Match Info</button>
+      <button class="tab" data-tab="commentary" onclick="switchTab(this)"><div class="tab-dot"></div>Commentary <span class="cnt" id="comm-cnt">0</span></button>
+      <button class="tab" data-tab="scorecard" onclick="switchTab(this)"><div class="tab-dot"></div>Scorecard</button>
+      <button class="tab" data-tab="impact" onclick="switchTab(this)"><div class="tab-dot"></div>Impact</button>
+      <button class="tab" data-tab="momentum" onclick="switchTab(this)"><div class="tab-dot"></div>Momentum</button>
+      <button class="tab" data-tab="news" onclick="switchTab(this)"><div class="tab-dot"></div>News</button>
+    </div>
+    <div class="tab-pages">
+
+      <!-- ── INFO TAB ── -->
+      <div class="tab-page on" id="tab-info">
+        <div class="sec-hdr"><div><div class="sec-title">MATCH INFO</div><div class="sec-sub">Basic match data — feeds the score hero and chatbot context</div></div></div>
+
+        <div class="input-row cols-2">
+          <div class="input-group">
+            <div class="input-label">Match ID <span class="hint">(Cricbuzz ID)</span></div>
+            <input class="field" id="f-id" placeholder="122698">
+          </div>
+          <div class="input-group">
+            <div class="input-label">Format</div>
+            <select class="field" id="f-fmt">
+              <option>T20I</option><option>ODI</option><option>TEST</option><option>T20</option><option>LIST-A</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <div class="input-label">Match Title</div>
+          <input class="field" id="f-title" placeholder="NZ vs SA · 2nd T20I · SuperSport Park, Centurion">
+        </div>
+
+        <div class="input-row cols-2">
+          <div class="input-group">
+            <div class="input-label">Team 1 — Full Name</div>
+            <input class="field" id="f-t1" placeholder="New Zealand">
+          </div>
+          <div class="input-group">
+            <div class="input-label">Team 1 — Code + Flag</div>
+            <div class="input-row cols-2">
+              <input class="field" id="f-c1" placeholder="NZ">
+              <input class="field" id="f-f1" placeholder="🇳🇿">
+            </div>
+          </div>
+        </div>
+
+        <div class="input-row cols-2">
+          <div class="input-group">
+            <div class="input-label">Team 2 — Full Name</div>
+            <input class="field" id="f-t2" placeholder="South Africa">
+          </div>
+          <div class="input-group">
+            <div class="input-label">Team 2 — Code + Flag</div>
+            <div class="input-row cols-2">
+              <input class="field" id="f-c2" placeholder="SA">
+              <input class="field" id="f-f2" placeholder="🇿🇦">
+            </div>
+          </div>
+        </div>
+
+        <div class="input-row cols-4">
+          <div class="input-group">
+            <div class="input-label">T1 Score</div>
+            <input class="field" id="f-s1" placeholder="186/6">
+          </div>
+          <div class="input-group">
+            <div class="input-label">T1 Overs</div>
+            <input class="field" id="f-ov1" placeholder="20.0">
+          </div>
+          <div class="input-group">
+            <div class="input-label">T1 Status</div>
+            <input class="field" id="f-s1note" placeholder="COMPLETED">
+          </div>
+          <div class="input-group">
+            <div class="input-label">Match Status</div>
+            <select class="field" id="f-status">
+              <option value="live">Live</option>
+              <option value="upcoming">Upcoming</option>
+              <option value="result">Result</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="input-row cols-4">
+          <div class="input-group">
+            <div class="input-label">T2 Score</div>
+            <input class="field" id="f-s2" placeholder="140/4">
+          </div>
+          <div class="input-group">
+            <div class="input-label">T2 Overs</div>
+            <input class="field" id="f-ov2" placeholder="16.0">
+          </div>
+          <div class="input-group">
+            <div class="input-label">T2 Status</div>
+            <input class="field" id="f-s2note" placeholder="BATTING">
+          </div>
+          <div class="input-group">
+            <div class="input-label">Win Probability</div>
+            <input class="field" id="f-wp" placeholder="NZ 62%">
+          </div>
+        </div>
+
+        <div class="input-row cols-3">
+          <div class="input-group">
+            <div class="input-label">Situation / Need</div>
+            <input class="field" id="f-need" placeholder="SA need 47 off 24">
+          </div>
+          <div class="input-group">
+            <div class="input-label">Current RR</div>
+            <input class="field" id="f-crr" placeholder="8.75">
+          </div>
+          <div class="input-group">
+            <div class="input-label">Required RR</div>
+            <input class="field" id="f-rrr" placeholder="11.75">
+          </div>
+        </div>
+
+        <div class="input-row cols-3">
+          <div class="input-group">
+            <div class="input-label">Last 5 Overs</div>
+            <input class="field" id="f-l5" placeholder="54 runs">
+          </div>
+          <div class="input-group">
+            <div class="input-label">Partnership</div>
+            <input class="field" id="f-pship" placeholder="48 (28)">
+          </div>
+          <div class="input-group">
+            <div class="input-label">Batting Now</div>
+            <input class="field" id="f-batting" placeholder="De Kock · Klaasen">
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="save-btn" id="save-info-btn" onclick="saveInfo()">💾 Save Match Info</button>
+        </div>
+      </div>
+
+      <!-- ── COMMENTARY TAB ── -->
+      <div class="tab-page" id="tab-commentary">
+        <div class="sec-hdr">
+          <div><div class="sec-title">BALL-BY-BALL COMMENTARY</div><div class="sec-sub">Paste raw commentary → Claude parses into all 4 flavours automatically</div></div>
+        </div>
+
+        <div class="input-group">
+          <div class="input-label">Raw Commentary Input <span class="hint">— one ball per line, any format</span></div>
+          <div class="paste-area">
+            <textarea class="field xl" id="raw-comm" placeholder="Paste ball-by-ball commentary here. Any format works:
+
+16.3 De Kock b Milne, SIX. Pulled over midwicket, massive hit.
+16.1 De Kock b Milne, FOUR. Driven through cover, perfect timing.
+15.4 Jansen b Ferguson, OUT. Jansen lbw across the line, NZ breakthrough.
+14.2 Klaasen b Santner, 1 run. Tucked to fine leg.
+13.1 Miller b Santner, CAUGHT. Taken at deep midwicket, gone for 5.
+11.3 Klaasen b Milne, SIX. Pulled off back foot, six!"></textarea>
+            <div class="paste-hint">supports any format</div>
+          </div>
+        </div>
+
+        <div class="input-row cols-2">
+          <div class="input-group">
+            <div class="input-label">Match Context <span class="hint">(helps Claude write better flavour)</span></div>
+            <input class="field" id="comm-context" placeholder="NZ 186/6 (20 ov) vs SA 140/4 chasing 187, over 16">
+          </div>
+          <div class="input-group">
+            <div class="input-label">Append mode</div>
+            <select class="field" id="comm-mode">
+              <option value="replace">Replace all commentary</option>
+              <option value="prepend">Prepend (newest first)</option>
+              <option value="append">Append (oldest first)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="parse-btn" id="parse-btn" onclick="parseCommentary()">
+            <span id="parse-icon">✦</span> Parse with Claude
+          </button>
+          <button class="save-btn" id="save-comm-btn" onclick="saveCommentary()" style="display:none">💾 Save Commentary</button>
+          <button class="act-btn ghost" style="padding:9px 14px;font-size:12px" onclick="manualAddBall()">+ Add ball manually</button>
+        </div>
+
+        <div id="comm-result" style="display:none">
+          <div class="result-box">
+            <div class="result-hdr">
+              <div class="result-hdr-label">Parsed <span class="result-count" id="comm-parsed-cnt">0 balls</span></div>
+              <div style="font-size:10px;color:var(--t3)">Preview (normal flavour)</div>
+            </div>
+            <div class="result-body">
+              <div class="comm-preview" id="comm-preview-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SCORECARD TAB ── -->
+      <div class="tab-page" id="tab-scorecard">
+        <div class="sec-hdr"><div><div class="sec-title">SCORECARD</div><div class="sec-sub">Enter batting and bowling figures — both innings</div></div></div>
+
+        <div class="inn-tabs">
+          <button class="inn-tab on" onclick="switchInnTab(1,this)">Innings 1</button>
+          <button class="inn-tab" onclick="switchInnTab(2,this)">Innings 2</button>
+        </div>
+
+        <!-- Inn 1 -->
+        <div id="inn-tab-1">
+          <div class="input-row cols-4" style="margin-bottom:14px">
+            <div class="input-group"><div class="input-label">Score</div><input class="field" id="i1-score" placeholder="186/6"></div>
+            <div class="input-group"><div class="input-label">Overs</div><input class="field" id="i1-ov" placeholder="20.0"></div>
+            <div class="input-group"><div class="input-label">Extras</div><input class="field" id="i1-extras" placeholder="12"></div>
+            <div class="input-group"><div class="input-label">Run Rate</div><input class="field" id="i1-rr" placeholder="9.30"></div>
+          </div>
+
+          <div class="sec-title" style="font-size:12px;margin-bottom:8px">BATTING</div>
+          <div style="overflow-x:auto">
+            <table class="sc-table">
+              <thead><tr><th>Batter</th><th>Dismissal</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th><th></th></tr></thead>
+              <tbody id="bat1-body"></tbody>
+            </table>
+          </div>
+          <button class="add-row-btn" onclick="addBatRow(1)">+ Add batter</button>
+
+          <div class="sec-title" style="font-size:12px;margin:16px 0 8px">BOWLING</div>
+          <div style="overflow-x:auto">
+            <table class="sc-table">
+              <thead><tr><th>Bowler</th><th>O</th><th>M</th><th>R</th><th>W</th><th>Eco</th><th>Dots</th><th>Wd</th><th></th></tr></thead>
+              <tbody id="bowl1-body"></tbody>
+            </table>
+          </div>
+          <button class="add-row-btn" onclick="addBowlRow(1)">+ Add bowler</button>
+        </div>
+
+        <!-- Inn 2 -->
+        <div id="inn-tab-2" style="display:none">
+          <div class="input-row cols-4" style="margin-bottom:14px">
+            <div class="input-group"><div class="input-label">Score</div><input class="field" id="i2-score" placeholder="140/4"></div>
+            <div class="input-group"><div class="input-label">Overs</div><input class="field" id="i2-ov" placeholder="16.0"></div>
+            <div class="input-group"><div class="input-label">Extras</div><input class="field" id="i2-extras" placeholder="8"></div>
+            <div class="input-group"><div class="input-label">Run Rate</div><input class="field" id="i2-rr" placeholder="8.75"></div>
+          </div>
+
+          <div class="sec-title" style="font-size:12px;margin-bottom:8px">BATTING</div>
+          <div style="overflow-x:auto">
+            <table class="sc-table">
+              <thead><tr><th>Batter</th><th>Dismissal</th><th>R</th><th>B</th><th>4s</th><th>6s</th><th>SR</th><th></th></tr></thead>
+              <tbody id="bat2-body"></tbody>
+            </table>
+          </div>
+          <button class="add-row-btn" onclick="addBatRow(2)">+ Add batter</button>
+
+          <div class="sec-title" style="font-size:12px;margin:16px 0 8px">BOWLING</div>
+          <div style="overflow-x:auto">
+            <table class="sc-table">
+              <thead><tr><th>Bowler</th><th>O</th><th>M</th><th>R</th><th>W</th><th>Eco</th><th>Dots</th><th>Wd</th><th></th></tr></thead>
+              <tbody id="bowl2-body"></tbody>
+            </table>
+          </div>
+          <button class="add-row-btn" onclick="addBowlRow(2)">+ Add bowler</button>
+        </div>
+
+        <div class="btn-row" style="margin-top:20px">
+          <button class="save-btn" onclick="saveScorecard()">💾 Save Scorecard</button>
+        </div>
+      </div>
+
+      <!-- ── IMPACT TAB ── -->
+      <div class="tab-page" id="tab-impact">
+        <div class="sec-hdr"><div><div class="sec-title">IMPACT LEADERBOARD</div><div class="sec-sub">Top 3 players per team with dimension scores</div></div></div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px" id="impact-teams-grid">
+          <!-- Built by JS -->
+        </div>
+
+        <div class="btn-row" style="margin-top:20px">
+          <button class="parse-btn" onclick="parseImpact()"><span>✦</span> Auto-generate from scorecard</button>
+          <button class="save-btn" onclick="saveImpact()">💾 Save Impact</button>
+        </div>
+      </div>
+
+      <!-- ── MOMENTUM TAB ── -->
+      <div class="tab-page" id="tab-momentum">
+        <div class="sec-hdr"><div><div class="sec-title">MOMENTUM DATA</div><div class="sec-sub">Per-over data for the momentum canvas graphs</div></div></div>
+
+        <div class="inn-tabs">
+          <button class="inn-tab on" onclick="switchMomTab(1,this)">🏏 Innings 1</button>
+          <button class="inn-tab" onclick="switchMomTab(2,this)">🏏 Innings 2 (chase)</button>
+        </div>
+
+        <div id="mom-inn1">
+          <div style="overflow-x:auto">
+            <table class="over-table">
+              <thead><tr><th>Over</th><th>Runs</th><th>Win%</th><th>Type</th><th>Wicket (name score)</th><th>Landmark</th><th></th></tr></thead>
+              <tbody id="mom1-body"></tbody>
+            </table>
+          </div>
+          <button class="add-over-btn" onclick="addOverRow(1)">+ Add over</button>
+        </div>
+
+        <div id="mom-inn2" style="display:none">
+          <div class="input-row cols-2" style="margin-bottom:12px">
+            <div class="input-group"><div class="input-label">Target</div><input class="field" id="mom-target" placeholder="187"></div>
+            <div class="input-group"><div class="input-label">Initial Win% (batting team)</div><input class="field" id="mom-wp0" placeholder="38"></div>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="over-table">
+              <thead><tr><th>Over</th><th>Runs</th><th>Win%</th><th>Type</th><th>Wicket (name score)</th><th>Landmark</th><th></th></tr></thead>
+              <tbody id="mom2-body"></tbody>
+            </table>
+          </div>
+          <button class="add-over-btn" onclick="addOverRow(2)">+ Add over</button>
+        </div>
+
+        <div class="btn-row" style="margin-top:16px">
+          <button class="save-btn" onclick="saveMomentum()">💾 Save Momentum</button>
+        </div>
+      </div>
+
+      <!-- ── NEWS TAB ── -->
+      <div class="tab-page" id="tab-news">
+        <div class="sec-hdr"><div><div class="sec-title">NEWS & HEADLINES</div><div class="sec-sub">Match news cards shown below the commentary</div></div></div>
+
+        <div id="news-items"></div>
+        <button class="add-row-btn" onclick="addNewsItem()" style="margin-bottom:16px">+ Add news item</button>
+
+        <div class="btn-row">
+          <button class="parse-btn" onclick="generateNews()"><span>✦</span> Auto-generate from match data</button>
+          <button class="save-btn" onclick="saveNews()">💾 Save News</button>
+        </div>
+      </div>
+
+    </div><!-- tab-pages -->
+  </div><!-- main -->
+
+  <!-- RIGHT PREVIEW -->
+  <div class="preview-panel">
+    <div class="preview-hdr">
+      <div class="preview-title">LIVE PREVIEW</div>
+      <div class="preview-sub">What match.html will receive</div>
+    </div>
+    <div class="preview-body" id="preview-body">
+      <!-- Built by refreshPreview() -->
+    </div>
+  </div>
+
+</div><!-- shell -->
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- NEW MATCH MODAL -->
+<div class="modal-overlay" id="new-match-modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-title">NEW MATCH</div>
+    <div class="input-group"><div class="input-label">Match ID (Cricbuzz)</div><input class="field" id="nm-id" placeholder="122704" style="width:100%"></div>
+    <div class="input-group"><div class="input-label">Team 1</div><input class="field" id="nm-t1" placeholder="India" style="width:100%"></div>
+    <div class="input-group"><div class="input-label">Team 2</div><input class="field" id="nm-t2" placeholder="Australia" style="width:100%"></div>
+    <div class="input-row cols-2">
+      <div class="input-group"><div class="input-label">Format</div>
+        <select class="field" id="nm-fmt" style="width:100%"><option>T20I</option><option>ODI</option><option>TEST</option></select>
+      </div>
+      <div class="input-group"><div class="input-label">Status</div>
+        <select class="field" id="nm-status" style="width:100%"><option value="upcoming">Upcoming</option><option value="live">Live</option><option value="result">Result</option></select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="act-btn ghost" onclick="closeModal()">Cancel</button>
+      <button class="save-btn" onclick="createMatch()" style="flex:1">Create Match</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════════════════════
+let currentId = '122698';
+let parsedComm = [];
+const API_URL = 'https://api.anthropic.com/v1/messages';
+const MODEL   = 'claude-haiku-4-5-20251001';
+
+const MATCH_META = {
+  '122698':{t1:'New Zealand',t2:'South Africa',s1:'186/6 (20)',s2:'140/4* (16)',need:'SA need 47 off 24',f1:'🇳🇿',f2:'🇿🇦'},
+  '122699':{t1:'India',t2:'England',s1:'342/8 (88.3)',s2:'289 all out',need:'India lead by 53 runs',f1:'🇮🇳',f2:'🏴'},
+  '122700':{t1:'Australia',t2:'Pakistan',s1:'—',s2:'—',need:'Tomorrow 9:30 AM IST',f1:'🇦🇺',f2:'🇵🇰'},
+  '122701':{t1:'Bangladesh',t2:'Sri Lanka',s1:'—',s2:'—',need:'19 Mar 3:00 PM IST',f1:'🇧🇩',f2:'🇱🇰'},
+  '122702':{t1:'West Indies',t2:'Sri Lanka',s1:'178/5 (20)',s2:'165/9 (20)',need:'WI won by 13 runs',f1:'🏝️',f2:'🇱🇰'},
+  '122703':{t1:'Afghanistan',t2:'Zimbabwe',s1:'251 (49.2)',s2:'214/8 (50)',need:'AFG won by 37 runs',f1:'🇦🇫',f2:'🇿🇼'},
+};
+
+// ── KEY ──────────────────────────────────────────────────────────────────────
+function saveKey(v){
+  localStorage.setItem('cric_claude_key', v);
+  document.getElementById('key-dot').className = 'key-dot' + (v.startsWith('sk-ant') ? ' ok' : '');
+}
+function loadKey(){
+  const k = localStorage.getItem('cric_claude_key')||'';
+  document.getElementById('api-key').value = k;
+  document.getElementById('key-dot').className = 'key-dot' + (k.startsWith('sk-ant') ? ' ok' : '');
+  return k;
+}
+function getKey(){ return document.getElementById('api-key').value.trim(); }
+
+// ── STORAGE HELPERS ───────────────────────────────────────────────────────────
+function storeKey(id, section)   { return `cricai_match_${id}_${section}`; }
+function getData(section)        { const v=localStorage.getItem(storeKey(currentId,section)); return v?JSON.parse(v):null; }
+function setData(section, data)  { localStorage.setItem(storeKey(currentId,section), JSON.stringify(data)); refreshStoreDots(); refreshPreview(); }
+function clearData(section)      { localStorage.removeItem(storeKey(currentId,section)); refreshStoreDots(); refreshPreview(); }
+
+function refreshStoreDots(){
+  ['info','scorecard','commentary','impact','momentum','news'].forEach(s=>{
+    const el = document.getElementById('dot-'+s);
+    if(el) el.className = 'store-dot' + (localStorage.getItem(storeKey(currentId,s)) ? ' saved' : '');
+  });
+}
+
+// ── TOAST ────────────────────────────────────────────────────────────────────
+let _toastTimer;
+function toast(msg, type='ok'){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast show ${type}`;
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=>el.className='toast', 2800);
+}
+
+// ── TAB SWITCHING ─────────────────────────────────────────────────────────────
+function switchTab(btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.tab-page').forEach(p=>p.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('tab-'+btn.dataset.tab).classList.add('on');
+}
+
+function switchInnTab(n, btn){
+  document.querySelectorAll('.inn-tab').forEach(t=>t.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('inn-tab-1').style.display = n===1?'block':'none';
+  document.getElementById('inn-tab-2').style.display = n===2?'block':'none';
+}
+
+function switchMomTab(n, btn){
+  document.querySelectorAll('.inn-tab').forEach(t=>t.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('mom-inn1').style.display = n===1?'block':'none';
+  document.getElementById('mom-inn2').style.display = n===2?'block':'none';
+}
+
+// ── MATCH SWITCHING ───────────────────────────────────────────────────────────
+function switchMatch(id){
+  if(id === 'new'){ document.getElementById('new-match-modal').classList.add('open'); document.getElementById('match-sel').value=currentId; return; }
+  currentId = id;
+  const m = MATCH_META[id]||{t1:'Team 1',t2:'Team 2',s1:'—',s2:'—',need:'—',f1:'',f2:''};
+  document.getElementById('pv-t1').textContent = m.f1+' '+m.t1;
+  document.getElementById('pv-t2').textContent = m.f2+' '+m.t2;
+  document.getElementById('pv-s1').textContent = m.s1;
+  document.getElementById('pv-s2').textContent = m.s2;
+  document.getElementById('pv-need').textContent = m.need;
+  // Load saved info into fields
+  loadInfoFields();
+  refreshStoreDots();
+  refreshPreview();
+  updateCommCount();
+}
+
+function closeModal(){ document.getElementById('new-match-modal').classList.remove('open'); }
+
+function createMatch(){
+  const id = document.getElementById('nm-id').value.trim();
+  const t1 = document.getElementById('nm-t1').value.trim();
+  const t2 = document.getElementById('nm-t2').value.trim();
+  if(!id||!t1||!t2){ toast('Fill in all fields','err'); return; }
+  MATCH_META[id] = {t1,t2,s1:'—',s2:'—',need:'Upcoming',f1:'',f2:''};
+  const sel = document.getElementById('match-sel');
+  const opt = document.createElement('option');
+  opt.value = id; opt.textContent = `${t1} vs ${t2} · ${document.getElementById('nm-fmt').value}`;
+  sel.insertBefore(opt, sel.querySelector('option[value="new"]'));
+  sel.value = id;
+  closeModal();
+  switchMatch(id);
+  // Pre-fill info tab
+  document.getElementById('f-id').value = id;
+  document.getElementById('f-t1').value = t1;
+  document.getElementById('f-t2').value = t2;
+  document.getElementById('f-fmt').value = document.getElementById('nm-fmt').value;
+  document.getElementById('f-status').value = document.getElementById('nm-status').value;
+  toast('Match created — fill in the Info tab','info');
+}
+
+// ── INFO ─────────────────────────────────────────────────────────────────────
+function loadInfoFields(){
+  const d = getData('info');
+  if(!d) return;
+  const fields = ['id','t1','c1','f1','t2','c2','f2','s1','ov1','s1note','s2','ov2','s2note','need','crr','rrr','l5','pship','batting','wp','status','fmt'];
+  fields.forEach(f => { const el=document.getElementById('f-'+f); if(el&&d[f]!==undefined) el.value=d[f]; });
+}
+
+function collectInfo(){
+  return {
+    id:    v('f-id'),
+    title: v('f-title'),
+    t1:    v('f-t1'), c1: v('f-c1'), f1: v('f-f1'),
+    t2:    v('f-t2'), c2: v('f-c2'), f2: v('f-f2'),
+    s1:    v('f-s1'), ov1: v('f-ov1'), s1note: v('f-s1note'),
+    s2:    v('f-s2'), ov2: v('f-ov2'), s2note: v('f-s2note'),
+    status: v('f-status'),
+    need:   v('f-need'), crr: v('f-crr'), rrr: v('f-rrr'),
+    lastFive: v('f-l5'), pship: v('f-pship'), batting: v('f-batting'),
+    winProb: v('f-wp'),
+  };
+}
+
+function saveInfo(){
+  const d = collectInfo();
+  if(!d.t1||!d.t2){ toast('Fill in at least both team names','err'); return; }
+  setData('info', d);
+  flashSave('save-info-btn');
+  // Update sidebar card
+  MATCH_META[currentId] = {...MATCH_META[currentId]||{}, t1:d.t1, t2:d.t2, f1:d.f1||'', f2:d.f2||'', s1:d.s1||'—', s2:d.s2||'—', need:d.need||''};
+  switchMatch(currentId);
+  toast('Match info saved ✓');
+}
+
+function v(id){ return (document.getElementById(id)||{}).value||''; }
+
+// ── COMMENTARY ────────────────────────────────────────────────────────────────
+async function parseCommentary(){
+  const raw = document.getElementById('raw-comm').value.trim();
+  if(!raw){ toast('Paste some commentary first','err'); return; }
+  const key = getKey();
+  const btn = document.getElementById('parse-btn');
+  const icon = document.getElementById('parse-icon');
+  btn.classList.add('loading');
+  icon.textContent = '↻';
+  icon.className = 'spin';
+
+  const context = document.getElementById('comm-context').value||'cricket match';
+  const prompt = `You are a cricket commentary parser. Parse the following ball-by-ball commentary into a JSON array.
+
+Match context: ${context}
+
+Return ONLY a valid JSON array — no markdown, no explanation, no backticks.
+Each ball object must have exactly these fields:
+- ov: over.ball string (e.g. "16.3") — infer from sequence if not given
+- res: one of "six"|"four"|"wicket"|"dot"|"single"|"two"|"three"|"wide"|"noball"
+- btr: batsman short name (e.g. "De Kock")
+- bwl: bowler short name (e.g. "Milne")
+- runs: integer runs scored (0 for dot/wicket/wide, 1/2/3/4/6 otherwise)
+- n: neutral factual commentary (1-2 crisp sentences, broadcast style)
+- h: excited home-team fan reaction (partisan, emotional, 1 sentence)
+- a: away-team fan reaction (can be devastated or celebrating, 1 sentence)
+- m: internet meme-style humor (witty, irreverent, 1-2 sentences)
+
+Raw commentary:
+${raw}`;
+
+  try{
+    const res = await fetch(API_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},
+      body: JSON.stringify({model:MODEL, max_tokens:4000, messages:[{role:'user',content:prompt}]})
+    });
+    const d = await res.json();
+    if(d.error){ toast('API error: '+d.error.message,'err'); return; }
+    const text = d.content?.[0]?.text||'[]';
+    // Strip any accidental markdown fences
+    const clean = text.replace(/```json\n?|```\n?/g,'').trim();
+    parsedComm = JSON.parse(clean);
+    showCommPreview(parsedComm);
+    document.getElementById('save-comm-btn').style.display='flex';
+    toast(`Parsed ${parsedComm.length} balls ✓`);
+  }catch(e){
+    toast('Parse failed — check API key or raw text format','err');
+    console.error(e);
+  }finally{
+    btn.classList.remove('loading');
+    icon.textContent = '✦';
+    icon.className = '';
+  }
+}
+
+function showCommPreview(balls){
+  const cnt = document.getElementById('comm-parsed-cnt');
+  cnt.textContent = balls.length+' balls';
+  document.getElementById('comm-cnt').textContent = balls.length;
+  const list = document.getElementById('comm-preview-list');
+  list.innerHTML = balls.map(c=>`
+    <div class="cp-card ${c.res}">
+      <div class="cp-meta">
+        <span class="cp-ov">${c.ov}</span>
+        <span class="cp-res ${c.res}">${c.res==='six'?'6':c.res==='four'?'4':c.res==='wicket'?'WKT':c.res==='dot'?'•':c.res}</span>
+        <span class="cp-players">${c.btr||''} v ${c.bwl||''}</span>
+      </div>
+      <div class="cp-text">${c.n}</div>
+      <div class="cp-flavours">
+        <span class="cp-flv">HOT: ${c.h?.substring(0,50)||'—'}…</span>
+        <span class="cp-flv">MEME: ${c.m?.substring(0,50)||'—'}…</span>
+      </div>
+    </div>`).join('');
+  document.getElementById('comm-result').style.display='block';
+}
+
+function saveCommentary(){
+  if(!parsedComm.length){ toast('Nothing to save — parse first','err'); return; }
+  const mode = document.getElementById('comm-mode').value;
+  let existing = getData('commentary')||[];
+  let final;
+  if(mode==='replace') final = parsedComm;
+  else if(mode==='prepend') final = [...parsedComm, ...existing];
+  else final = [...existing, ...parsedComm];
+  setData('commentary', final);
+  flashSave('save-comm-btn');
+  toast(`${final.length} balls saved ✓`);
+}
+
+function manualAddBall(){
+  const ball = {ov:'',res:'single',btr:'',bwl:'',runs:1,n:'',h:'',a:'',m:''};
+  parsedComm.unshift(ball);
+  if(!document.getElementById('comm-result').style.display||document.getElementById('comm-result').style.display==='none')
+    document.getElementById('comm-result').style.display='block';
+  showCommPreview(parsedComm);
+  document.getElementById('save-comm-btn').style.display='flex';
+  toast('Ball added — edit in the preview','info');
+}
+
+function updateCommCount(){
+  const d = getData('commentary');
+  document.getElementById('comm-cnt').textContent = d?d.length:0;
+}
+
+// ── SCORECARD ─────────────────────────────────────────────────────────────────
+function addBatRow(inn, data={}){
+  const tbody = document.getElementById('bat'+inn+'-body');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td><input class="wide" placeholder="Player name" value="${data.n||''}"></td>
+    <td><input class="wide" placeholder="not out / c X b Y" value="${data.dis||''}"></td>
+    <td><input style="width:50px" placeholder="0" value="${data.r||''}"></td>
+    <td><input style="width:50px" placeholder="0" value="${data.b||''}"></td>
+    <td><input style="width:40px" placeholder="0" value="${data.f||''}"></td>
+    <td><input style="width:40px" placeholder="0" value="${data.s||''}"></td>
+    <td><input style="width:60px" placeholder="0.0" value="${data.sr||''}"></td>
+    <td><button class="del-btn" onclick="this.closest('tr').remove()">✕</button></td>`;
+  tbody.appendChild(tr);
+}
+
+function addBowlRow(inn, data={}){
+  const tbody = document.getElementById('bowl'+inn+'-body');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td><input class="wide" placeholder="Bowler name" value="${data.n||''}"></td>
+    <td><input style="width:45px" placeholder="4.0" value="${data.o||''}"></td>
+    <td><input style="width:35px" placeholder="0" value="${data.m||''}"></td>
+    <td><input style="width:40px" placeholder="0" value="${data.r||''}"></td>
+    <td><input style="width:35px" placeholder="0" value="${data.w||''}"></td>
+    <td><input style="width:50px" placeholder="8.00" value="${data.eco||''}"></td>
+    <td><input style="width:40px" placeholder="0" value="${data.dot||''}"></td>
+    <td><input style="width:40px" placeholder="0" value="${data.wd||''}"></td>
+    <td><button class="del-btn" onclick="this.closest('tr').remove()">✕</button></td>`;
+  tbody.appendChild(tr);
+}
+
+function readTableRows(tbodyId, fields){
+  return Array.from(document.getElementById(tbodyId).querySelectorAll('tr')).map(tr=>{
+    const inputs = tr.querySelectorAll('input');
+    const obj={};
+    fields.forEach((f,i)=>{ if(inputs[i]) obj[f]=isNaN(inputs[i].value)||f==='n'||f==='dis'||f==='o'?inputs[i].value:+inputs[i].value; });
+    return obj;
+  }).filter(r=>r.n||r[fields[0]]);
+}
+
+function saveScorecard(){
+  const inn1 = {
+    sum:{score:v('i1-score'),ov:v('i1-ov'),extras:+v('i1-extras')||0,rr:v('i1-rr'),highest:'',pship:''},
+    bat: readTableRows('bat1-body',['n','dis','r','b','f','s','sr']),
+    bowl: readTableRows('bowl1-body',['n','o','m','r','w','eco','dot','wd'])
+  };
+  const inn2 = {
+    sum:{score:v('i2-score'),ov:v('i2-ov'),extras:+v('i2-extras')||0,rr:v('i2-rr'),highest:'',pship:''},
+    bat: readTableRows('bat2-body',['n','dis','r','b','f','s','sr']),
+    bowl: readTableRows('bowl2-body',['n','o','m','r','w','eco','dot','wd'])
+  };
+  setData('scorecard', {1:inn1, 2:inn2});
+  toast('Scorecard saved ✓');
+}
+
+function loadScorecardFields(){
+  const d = getData('scorecard');
+  if(!d) return;
+  [1,2].forEach(n=>{
+    const inn = d[n];
+    if(!inn) return;
+    if(inn.sum){
+      document.getElementById('i'+n+'-score').value = inn.sum.score||'';
+      document.getElementById('i'+n+'-ov').value    = inn.sum.ov||'';
+      document.getElementById('i'+n+'-extras').value = inn.sum.extras||'';
+      document.getElementById('i'+n+'-rr').value    = inn.sum.rr||'';
+    }
+    document.getElementById('bat'+n+'-body').innerHTML = '';
+    document.getElementById('bowl'+n+'-body').innerHTML = '';
+    (inn.bat||[]).forEach(r=>addBatRow(n,r));
+    (inn.bowl||[]).forEach(r=>addBowlRow(n,r));
+  });
+}
+
+// ── IMPACT ────────────────────────────────────────────────────────────────────
+function buildImpactUI(){
+  const grid = document.getElementById('impact-teams-grid');
+  const existing = getData('impact');
+  const teams = existing || [
+    {team:'Team 1',code:'T1',flag:'',score:'',players:[{name:'',role:'BAT',imp:0,bat:0,bowl:0,fld:0,desc:''}]},
+    {team:'Team 2',code:'T2',flag:'',score:'',players:[{name:'',role:'BAT',imp:0,bat:0,bowl:0,fld:0,desc:''}]},
+  ];
+  grid.innerHTML = teams.map((team,ti)=>`
+    <div style="grid-column:1/-1">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+        <input class="field" style="width:120px" placeholder="Team name" value="${team.team}" id="imp-team-${ti}">
+        <input class="field" style="width:60px" placeholder="Code" value="${team.code}" id="imp-code-${ti}">
+        <input class="field" style="width:50px" placeholder="🏳" value="${team.flag}" id="imp-flag-${ti}">
+        <input class="field" style="flex:1" placeholder="Score (186/6 20 ov)" value="${team.score}" id="imp-score-${ti}">
+      </div>
+      ${team.players.slice(0,3).map((p,pi)=>`
+      <div class="imp-card" style="margin-bottom:8px">
+        <div class="imp-card-hdr"><div class="imp-num">#${pi+1}</div><div class="imp-team-tag">${team.code}</div></div>
+        <div class="input-row cols-2" style="margin-bottom:8px">
+          <input class="field" placeholder="Player name" value="${p.name}" id="imp-p-${ti}-${pi}-name">
+          <select class="field" id="imp-p-${ti}-${pi}-role">
+            ${['BAT','BOWL','WK-BAT','AR','WK'].map(r=>`<option ${p.role===r?'selected':''}>${r}</option>`).join('')}
+          </select>
+        </div>
+        <div class="input-row cols-4" style="margin-bottom:8px">
+          <div><div class="input-label" style="margin-bottom:3px">Impact</div><input class="field" type="number" min="0" max="100" value="${p.imp}" id="imp-p-${ti}-${pi}-imp"></div>
+          <div><div class="input-label" style="margin-bottom:3px">Bat</div><input class="field" type="number" min="0" max="100" value="${p.bat}" id="imp-p-${ti}-${pi}-bat"></div>
+          <div><div class="input-label" style="margin-bottom:3px">Bowl</div><input class="field" type="number" min="0" max="100" value="${p.bowl}" id="imp-p-${ti}-${pi}-bowl"></div>
+          <div><div class="input-label" style="margin-bottom:3px">Field</div><input class="field" type="number" min="0" max="100" value="${p.fld}" id="imp-p-${ti}-${pi}-fld"></div>
+        </div>
+        <textarea class="field" rows="2" placeholder="Player description…" id="imp-p-${ti}-${pi}-desc">${p.desc||''}</textarea>
+      </div>`).join('')}
+    </div>`).join('');
+}
+
+async function parseImpact(){
+  const sc = getData('scorecard');
+  if(!sc){ toast('Save scorecard first','err'); return; }
+  const key = getKey();
+  if(!key){ toast('Add Claude API key first','err'); return; }
+  toast('Generating impact scores…','info');
+  const prompt = `Given this cricket scorecard, generate an impact leaderboard JSON.
+Scorecard: ${JSON.stringify(sc)}
+Return ONLY a JSON array of 2 team objects, each with: team, code, flag(""), score, players (array of top 3 objects with: name, role, imp(0-100), bat(0-100), bowl(0-100), fld(0-100), desc(2 sentences explaining impact)).
+No markdown, no explanation.`;
+  try{
+    const res = await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},body:JSON.stringify({model:MODEL,max_tokens:1500,messages:[{role:'user',content:prompt}]})});
+    const d = await res.json();
+    const text = d.content?.[0]?.text||'[]';
+    const clean = text.replace(/```json\n?|```\n?/g,'').trim();
+    setData('impact', JSON.parse(clean));
+    buildImpactUI();
+    toast('Impact generated ✓');
+  }catch(e){ toast('Generation failed','err'); }
+}
+
+function collectImpact(){
+  const teams=[];
+  [0,1].forEach(ti=>{
+    const players=[];
+    [0,1,2].forEach(pi=>{
+      const name = document.getElementById(`imp-p-${ti}-${pi}-name`)?.value;
+      if(!name) return;
+      players.push({
+        name, role: document.getElementById(`imp-p-${ti}-${pi}-role`)?.value||'BAT',
+        imp: +document.getElementById(`imp-p-${ti}-${pi}-imp`)?.value||0,
+        bat: +document.getElementById(`imp-p-${ti}-${pi}-bat`)?.value||0,
+        bowl:+document.getElementById(`imp-p-${ti}-${pi}-bowl`)?.value||0,
+        fld: +document.getElementById(`imp-p-${ti}-${pi}-fld`)?.value||0,
+        desc: document.getElementById(`imp-p-${ti}-${pi}-desc`)?.value||''
+      });
+    });
+    teams.push({team:document.getElementById(`imp-team-${ti}`)?.value||'',code:document.getElementById(`imp-code-${ti}`)?.value||'',flag:document.getElementById(`imp-flag-${ti}`)?.value||'',score:document.getElementById(`imp-score-${ti}`)?.value||'',players});
+  });
+  return teams;
+}
+function saveImpact(){ setData('impact', collectImpact()); toast('Impact saved ✓'); }
+
+// ── MOMENTUM ─────────────────────────────────────────────────────────────────
+function addOverRow(inn, data={}){
+  const tbody = document.getElementById('mom'+inn+'-body');
+  const ov = tbody.querySelectorAll('tr').length + 1;
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td class="over-num">${ov}</td>
+    <td><input type="number" placeholder="0" value="${data.r||''}" style="width:46px"></td>
+    <td><input type="number" placeholder="50" value="${data.wp||''}" style="width:46px"></td>
+    <td><select style="width:110px">
+      ${['normal','boundary_burst','dot_cluster','collapse'].map(t=>`<option ${(data.type||'normal')===t?'selected':''}>${t}</option>`).join('')}
+    </select></td>
+    <td><input placeholder="Player name score" value="${(data.wkt||[]).join(', ')}" style="width:140px"></td>
+    <td><input placeholder="e.g. Conway 50" value="${data.lmk||''}" style="width:110px"></td>
+    <td><button class="del-btn" onclick="this.closest('tr').remove();renumberOvers(${inn})">✕</button></td>`;
+  tbody.appendChild(tr);
+}
+
+function renumberOvers(inn){
+  document.querySelectorAll(`#mom${inn}-body tr`).forEach((tr,i)=>{
+    const first = tr.querySelector('.over-num');
+    if(first) first.textContent = i+1;
+  });
+}
+
+function readMomRows(inn){
+  return Array.from(document.getElementById('mom'+inn+'-body').querySelectorAll('tr')).map((tr,i)=>{
+    const inputs = tr.querySelectorAll('input');
+    const sel = tr.querySelector('select');
+    const wktVal = inputs[2]?.value?.trim();
+    return {
+      o: i+1, r:+inputs[0]?.value||0, wp:+inputs[1]?.value||50,
+      type: sel?.value||'normal',
+      wkt: wktVal ? wktVal.split(',').map(s=>s.trim()).filter(Boolean) : [],
+      lmk: inputs[3]?.value?.trim()||null, msd: null
+    };
+  });
+}
+
+function saveMomentum(){
+  const overs1 = readMomRows(1);
+  const overs2 = readMomRows(2);
+  if(!overs1.length){ toast('Add at least 1 over for innings 1','err'); return; }
+  // Build cumulative scores from per-over runs
+  function makeCumulative(overData){ const cum=[0]; overData.forEach(o=>cum.push(cum[cum.length-1]+o.r)); return cum; }
+  const data = {
+    inn1:{ flag:'', colHi:'#c6f135', col:'#8fb82a', wp0: overs1[0]?.wp||50, cumScores: makeCumulative(overs1), data: overs1 },
+    inn2:{ flag:'', colHi:'#00e5c8', col:'#009e8d', wp0: +v('mom-wp0')||38, target: +v('mom-target')||0, cumScores: makeCumulative(overs2), data: overs2 },
+    wf1: overs1.flatMap((o,i)=>o.wkt.map(w=>[i+1,0,w.split(' ')[0]])),
+    wf2: overs2.flatMap((o,i)=>o.wkt.map(w=>[i+1,0,w.split(' ')[0]]))
+  };
+  setData('momentum', data);
+  toast('Momentum saved ✓');
+}
+
+function loadMomentumFields(){
+  const d = getData('momentum');
+  if(!d) return;
+  document.getElementById('mom1-body').innerHTML='';
+  document.getElementById('mom2-body').innerHTML='';
+  if(d.inn2?.target) document.getElementById('mom-target').value = d.inn2.target;
+  if(d.inn2?.wp0)    document.getElementById('mom-wp0').value    = d.inn2.wp0;
+  (d.inn1?.data||[]).forEach(o=>addOverRow(1,o));
+  (d.inn2?.data||[]).forEach(o=>addOverRow(2,o));
+}
+
+// ── NEWS ──────────────────────────────────────────────────────────────────────
+function addNewsItem(data={}){
+  const container = document.getElementById('news-items');
+  const div = document.createElement('div');
+  div.className='input-row cols-4';
+  div.style='margin-bottom:8px';
+  const tags=['LIVE','ANALYSIS','VIRAL','STATS','PREVIEW','CHAT','MATCH','PLAYER'];
+  div.innerHTML=`<select class="field">${tags.map(t=>`<option ${(data.tag||'LIVE')===t?'selected':''}>${t}</option>`).join('')}</select>
+    <input class="field" style="grid-column:span 2" placeholder="Headline…" value="${data.hl||''}">
+    <div style="display:flex;gap:5px"><input class="field" style="flex:1" placeholder="icon 🏏" value="${data.ic||'🏏'}"><button class="del-btn" onclick="this.closest('.input-row').remove()" style="align-self:center">✕</button></div>`;
+  container.appendChild(div);
+}
+
+function collectNews(){
+  return Array.from(document.getElementById('news-items').querySelectorAll('.input-row')).map(row=>{
+    const inputs=row.querySelectorAll('input,select');
+    return {tag:inputs[0]?.value||'LIVE',hl:inputs[1]?.value||'',ic:inputs[2]?.value||'🏏',time:'Just now'};
+  }).filter(n=>n.hl);
+}
+
+async function generateNews(){
+  const key=getKey();
+  if(!key){toast('Add API key first','err');return;}
+  const info=getData('info')||{};
+  const sc=getData('scorecard')||{};
+  toast('Generating news headlines…','info');
+  const prompt=`Generate 6 cricket news headlines as JSON array for this match.
+Match: ${info.title||'cricket match'}, ${info.need||''}
+Scorecard summary: ${JSON.stringify(sc[1]?.sum||{})} vs ${JSON.stringify(sc[2]?.sum||{})}
+Return ONLY JSON array: [{tag:"LIVE"|"ANALYSIS"|"VIRAL"|"STATS"|"PREVIEW"|"CHAT", hl:"headline", ic:"emoji", time:"X min ago"}]`;
+  try{
+    const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},body:JSON.stringify({model:MODEL,max_tokens:800,messages:[{role:'user',content:prompt}]})});
+    const d=await res.json();
+    const clean=(d.content?.[0]?.text||'[]').replace(/```json\n?|```\n?/g,'').trim();
+    const news=JSON.parse(clean);
+    document.getElementById('news-items').innerHTML='';
+    news.forEach(n=>addNewsItem(n));
+    toast('News generated ✓');
+  }catch(e){toast('Generation failed','err');}
+}
+
+function loadNewsFields(){
+  const d=getData('news');
+  if(!d)return;
+  document.getElementById('news-items').innerHTML='';
+  d.forEach(n=>addNewsItem(n));
+}
+
+function saveNews(){
+  const news=collectNews();
+  if(!news.length){toast('Add at least one headline','err');return;}
+  setData('news',news);
+  toast('News saved ✓');
+}
+
+// ── SAVE ALL ──────────────────────────────────────────────────────────────────
+function saveAll(){
+  saveInfo();
+  saveScorecard();
+  if(parsedComm.length) saveCommentary();
+  saveImpact();
+  toast('All data saved to localStorage ✓');
+}
+
+function clearMatch(){
+  if(!confirm(`Clear all data for match ${currentId}?`)) return;
+  ['info','scorecard','commentary','impact','momentum','news'].forEach(s=>clearData(s));
+  toast('Match data cleared','info');
+}
+
+function exportJSON(){
+  const all={};
+  ['info','scorecard','commentary','impact','momentum','news'].forEach(s=>{
+    const d=getData(s); if(d) all[s]=d;
+  });
+  const blob=new Blob([JSON.stringify(all,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`cricai_match_${currentId}.json`;
+  a.click();
+  toast('JSON exported');
+}
+
+// ── PREVIEW ───────────────────────────────────────────────────────────────────
+function refreshPreview(){
+  const body = document.getElementById('preview-body');
+  const sections = ['info','scorecard','commentary','impact','momentum','news'];
+  body.innerHTML = sections.map(s=>{
+    const d = getData(s);
+    const stored = !!d;
+    let content='';
+    if(s==='info'&&d){
+      content=`<div class="pv-score">${d.t1||'?'} <span style="font-size:16px;color:var(--t3)">vs</span> ${d.t2||'?'}</div>
+      <div class="pv-team">${d.s1||'—'} · ${d.s2||'—'}</div>
+      <div style="font-size:11px;color:var(--amber);margin-top:4px">${d.need||''}</div>`;
+    } else if(s==='commentary'&&d){
+      const balls=d.slice(0,8);
+      content=`<div class="ball-dots">${balls.map(b=>`<div class="ball-dot ${b.res}" title="${b.ov} ${b.btr}">${b.res==='six'?'6':b.res==='four'?'4':b.res==='wicket'?'W':b.res==='dot'?'•':b.runs||'?'}</div>`).join('')}</div>
+      <div style="font-size:10px;color:var(--t3);margin-top:4px">${d.length} balls stored</div>`;
+    } else if(s==='scorecard'&&d){
+      const i1=d[1],i2=d[2];
+      content=`<div style="font-family:var(--fm);font-size:11px;color:var(--t2)">Inn1: ${i1?.sum?.score||'—'} (${(i1?.bat||[]).length} batters, ${(i1?.bowl||[]).length} bowlers)<br>Inn2: ${i2?.sum?.score||'—'} (${(i2?.bat||[]).length} batters, ${(i2?.bowl||[]).length} bowlers)</div>`;
+    } else if(s==='impact'&&d){
+      content=`<div style="font-size:11px;color:var(--t2)">${d.map(t=>t.players.map(p=>`${p.name} (${p.imp})`).join(', ')).join(' · ')}</div>`;
+    } else if(s==='momentum'&&d){
+      const ov1=(d.inn1?.data||[]).length, ov2=(d.inn2?.data||[]).length;
+      content=`<div style="font-family:var(--fm);font-size:11px;color:var(--t2)">Inn1: ${ov1} overs · Inn2: ${ov2} overs</div>`;
+    } else if(s==='news'&&d){
+      content=`<div style="font-size:11px;color:var(--t2)">${d.length} headlines</div>`;
+    }
+    return `<div class="pv-section">
+      <div class="pv-label">${s.toUpperCase()} <span class="pv-status ${stored?'stored':'default'}">${stored?'STORED':'default data'}</span></div>
+      ${content?`<div class="pv-card">${content}</div>`:'<div class="pv-empty">No data yet</div>'}
+    </div><hr class="pv-divider">`;
+  }).join('');
+}
+
+// ── LAUNCH MATCH ──────────────────────────────────────────────────────────────
+function launchMatch(){
+  window.open(`match.html?id=${currentId}`, '_blank');
+}
+
+// ── FLASH SAVE BUTTON ─────────────────────────────────────────────────────────
+function flashSave(id){
+  const btn=document.getElementById(id);
+  if(!btn)return;
+  const orig=btn.innerHTML;
+  btn.innerHTML='✓ Saved';
+  btn.classList.add('saved');
+  setTimeout(()=>{btn.innerHTML=orig;btn.classList.remove('saved');},2000);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+loadKey();
+switchMatch('122698');
+buildImpactUI();
+// Add default rows so tables aren't empty
+addBatRow(1); addBatRow(2);
+addBowlRow(1); addBowlRow(2);
+addOverRow(1); addOverRow(2);
+addNewsItem();
+// Load any existing saved data
+loadInfoFields();
+loadScorecardFields();
+loadMomentumFields();
+loadNewsFields();
+const savedComm = getData('commentary');
+if(savedComm){ parsedComm=savedComm; showCommPreview(savedComm); document.getElementById('save-comm-btn').style.display='flex'; }
+updateCommCount();
+refreshPreview();
+</script>
+</body>
+</html>
