@@ -1129,9 +1129,9 @@ table.ct tr:hover td{background:#fafafa}
         <div class="mom-panel-hdr">
           <div class="mom-panel-title">
             <span style="font-size:16px">🇳🇿</span>
-            <span class="mom-panel-name">NEW ZEALAND</span>
+            <span class="mom-panel-name" id="mom-t1-name">TEAM 1</span>
           </div>
-          <span class="mom-panel-score">186/6 · 20 ov</span>
+          <span class="mom-panel-score" id="mom-t1-score">—</span>
         </div>
         <canvas class="mom-cv" id="cv-nz" width="340" height="190"></canvas>
       </div>
@@ -1142,9 +1142,9 @@ table.ct tr:hover td{background:#fafafa}
           <div class="mom-panel-title">
             <div class="live-dot-sm"></div>
             <span style="font-size:16px">🇿🇦</span>
-            <span class="mom-panel-name">SOUTH AFRICA</span>
+            <span class="mom-panel-name" id="mom-t2-name">TEAM 2</span>
           </div>
-          <span class="mom-panel-score" style="color:var(--red)">140/4* · 16 ov</span>
+          <span class="mom-panel-score" id="mom-t2-score" style="color:var(--red)">—</span>
         </div>
         <canvas class="mom-cv" id="cv-sa" width="340" height="190"></canvas>
         <!-- Chase strip -->
@@ -2107,38 +2107,72 @@ loadMatch(_matchId).then(async data => {
 });
 
 // ── LIVE POLLING ─────────────────────────────────────────────────────────────
-// Refreshes ALL features on every tick — hero, scorecard, impact, commentary,
-// momentum graphs, news. When FastAPI is ready, swap loadMatch / initMatchData
-// bodies to fetch() calls. Everything else stays exactly the same.
-// FUTURE upgrade: replace setInterval with EventSource (SSE) for true real-time.
+// ── MOMENTUM REFRESH STATE ────────────────────────────────────────────────────
+// Tracks last seen state. Momentum only redraws on:
+// 1. New over completed  2. Wicket fell  3. Landmark reached
+let _lastMomSnapshot = { overs:0, wickets:0, landmarks:0 };
+
+function getMomentumSnapshot(inn1, inn2){
+  const all = [...(inn1?.data||[]), ...(inn2?.data||[])];
+  return {
+    overs:     (inn1?.data?.length||0) + (inn2?.data?.length||0),
+    wickets:   all.reduce((s,o)=>s+(o.wkt?.length||0), 0),
+    landmarks: all.filter(o=>o.lmk).length
+  };
+}
+
+function shouldRefreshMomentum(snap){
+  const changed = snap.overs    !== _lastMomSnapshot.overs    ||
+                  snap.wickets  !== _lastMomSnapshot.wickets  ||
+                  snap.landmarks!== _lastMomSnapshot.landmarks;
+  if(changed) _lastMomSnapshot = {...snap};
+  return changed;
+}
+
 function startLivePoll(id) {
+  // ── FAST POLL: 30s — commentary, scorecard, hero ──────────────────────────
+  // Commentary is the source of truth. 30s is plenty — cricket moves slowly.
   setInterval(async () => {
     try {
-      // 1. Refresh match meta (hero scores, need, win prob)
       const fresh = await loadMatch(id);
       if(!fresh) return;
       CURRENT_MATCH = fresh;
       populateHero();
-      // 2. Refresh all feature data in parallel
       await initMatchData(id);
-      // 3. Re-render each feature
-      buildScorecard(_activeInn);   // stay on whichever innings tab user has open
+      buildScorecard(_activeInn);
       buildImpact();
-      renderComm();                 // preserves current flavor (normal/hot/fan/meme)
+      renderComm();
       buildNews();
-      // 4. Redraw momentum canvas only if data exists
-      if(NZ_INN.data && NZ_INN.data.length > 0){
-        animProg = 0;
-        renderAll(1); // instant redraw (no animation on poll refresh)
-      }
-    } catch(e) { /* silent fail — stale data is acceptable */ }
-  }, 15000); // 15s — reduce to 5s once on SSE
+    } catch(e) { /* silent fail */ }
+  }, 30000); // 30s — commentary/scorecard refresh
+
+  // ── SLOW POLL: 2min — momentum graph ──────────────────────────────────────
+  // Momentum only makes sense to redraw after an over ends, a wicket falls,
+  // or a landmark is reached. Checking every 2min is more than enough.
+  setInterval(async () => {
+    try {
+      if(!NZ_INN.data || !NZ_INN.data.length) return;
+      // Re-read fresh momentum from localStorage
+      const stored = localStorage.getItem(`cricai_match_${id}_momentum`);
+      if(!stored) return;
+      const mom = JSON.parse(stored);
+      const snap = getMomentumSnapshot(mom.inn1, mom.inn2);
+      if(!shouldRefreshMomentum(snap)) return; // nothing changed — skip redraw
+      // Something changed — update state and animate
+      NZ_INN = mom.inn1 || NZ_INN;
+      SA_INN = mom.inn2 || SA_INN;
+      NZ_WF  = mom.wf1  || NZ_WF;
+      SA_WF  = mom.wf2  || SA_WF;
+      animProg = 0;
+      runAnim(); // full animation — feels like a live graph update
+    } catch(e) { /* silent fail */ }
+  }, 120000); // 2 minutes — momentum only redraws when meaningful event happened
 }
 
 // Populate score hero from match data
 function populateHero() {
   const m = CURRENT_MATCH;
-  if(!m || !m.id) return; // data not yet loaded
+  if(!m || !m.id) return;
   const title = document.getElementById('sh-title');
   if(title) title.textContent = m.title;
   const mid = document.getElementById('sh-match-id');
@@ -2147,7 +2181,6 @@ function populateHero() {
   const s1 = document.getElementById('sh-score1');
   if(s1){
     s1.querySelector('.sh-tname').textContent = m.t1.toUpperCase();
-    // Rebuild score: split "186/6" into runs and wickets
     const [runs1, wkts1=''] = (m.s1||'').split('/');
     s1.querySelector('.sh-score').innerHTML = runs1 + (wkts1 ? `<span class="sh-wkt">/${wkts1}</span>` : '');
     s1.querySelector('.sh-ov').textContent = m.ov1 + ' OV · ' + m.s1note;
@@ -2166,6 +2199,19 @@ function populateHero() {
   const statVals = document.querySelectorAll('.sh-val');
   const statMap = [m.crr, m.rrr, m.lastFive, m.pship, m.batting, m.winProb];
   statVals.forEach((el,i) => { if(statMap[i] !== undefined) el.textContent = statMap[i]; });
+  // Update momentum panel team labels
+  const mn1 = document.getElementById('mom-t1-name');
+  const mn2 = document.getElementById('mom-t2-name');
+  const ms1 = document.getElementById('mom-t1-score');
+  const ms2 = document.getElementById('mom-t2-score');
+  if(mn1) mn1.textContent = ((m.f1||'')+' '+(m.c1||m.t1||'').toUpperCase()).trim();
+  if(mn2) mn2.textContent = ((m.f2||'')+' '+(m.c2||m.t2||'').toUpperCase()).trim();
+  if(ms1) ms1.textContent = m.s1 ? `${m.s1} · ${m.ov1} ov` : '—';
+  if(ms2) ms2.textContent = m.s2 ? `${m.s2} · ${m.ov2} ov` : '—';
+  // Update innings switcher buttons
+  const innBtns = document.querySelectorAll('.inn-btn');
+  if(innBtns[0]) innBtns[0].textContent = `${m.f1||''} ${m.c1||m.t1||'Team 1'} 1st Inn`;
+  if(innBtns[1]) innBtns[1].textContent = `${m.f2||''} ${m.c2||m.t2||'Team 2'} 2nd Inn`;
   // Update page title
   document.title = 'cricAI — ' + m.t1 + ' vs ' + m.t2;
 }
