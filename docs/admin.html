@@ -858,7 +858,7 @@ ${raw}`;
   try{
     const res = await fetch(API_URL, {
       method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body: JSON.stringify({model:MODEL, max_tokens:4000, messages:[{role:'user',content:prompt}]})
     });
     const d = await res.json();
@@ -1049,7 +1049,7 @@ Scorecard: ${JSON.stringify(sc)}
 Return ONLY a JSON array of 2 team objects, each with: team, code, flag(""), score, players (array of top 3 objects with: name, role, imp(0-100), bat(0-100), bowl(0-100), fld(0-100), desc(2 sentences explaining impact)).
 No markdown, no explanation.`;
   try{
-    const res = await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},body:JSON.stringify({model:MODEL,max_tokens:1500,messages:[{role:'user',content:prompt}]})});
+    const res = await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:MODEL,max_tokens:1500,messages:[{role:'user',content:prompt}]})});
     const d = await res.json();
     const text = d.content?.[0]?.text||'[]';
     const clean = text.replace(/```json\n?|```\n?/g,'').trim();
@@ -1177,7 +1177,7 @@ Match: ${info.title||'cricket match'}, ${info.need||''}
 Scorecard summary: ${JSON.stringify(sc[1]?.sum||{})} vs ${JSON.stringify(sc[2]?.sum||{})}
 Return ONLY JSON array: [{tag:"LIVE"|"ANALYSIS"|"VIRAL"|"STATS"|"PREVIEW"|"CHAT", hl:"headline", ic:"emoji", time:"X min ago"}]`;
   try{
-    const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},body:JSON.stringify({model:MODEL,max_tokens:800,messages:[{role:'user',content:prompt}]})});
+    const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:MODEL,max_tokens:800,messages:[{role:'user',content:prompt}]})});
     const d=await res.json();
     const clean=(d.content?.[0]?.text||'[]').replace(/```json\n?|```\n?/g,'').trim();
     const news=JSON.parse(clean);
